@@ -1,0 +1,261 @@
+import type { Appointment } from './types'
+import { daysFromToday } from './dates'
+
+export const appointments: Appointment[] = [
+  // Today
+  {
+    id: 'APT-3001',
+    patientId: 'PT-1001',
+    doctorId: 'doc-rao',
+    date: daysFromToday(0),
+    startTime: '09:00',
+    durationMin: 45,
+    status: 'completed',
+    reason: 'Root canal — stage 2 (molar)',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4001',
+  },
+  {
+    id: 'APT-3002',
+    patientId: 'PT-1005',
+    doctorId: 'doc-rao',
+    date: daysFromToday(0),
+    startTime: '09:45',
+    durationMin: 30,
+    status: 'completed',
+    reason: 'Denture fitting check',
+    isFollowUp: true,
+  },
+  {
+    id: 'APT-3003',
+    patientId: 'PT-1002',
+    doctorId: 'doc-menon',
+    date: daysFromToday(0),
+    startTime: '10:30',
+    durationMin: 30,
+    status: 'checked-in',
+    reason: '6-month cleaning',
+    isFollowUp: true,
+  },
+  {
+    id: 'APT-3004',
+    patientId: 'PT-1010',
+    doctorId: 'doc-menon',
+    date: daysFromToday(0),
+    startTime: '11:15',
+    durationMin: 45,
+    status: 'confirmed',
+    reason: 'New patient consultation',
+    isFollowUp: false,
+  },
+  {
+    id: 'APT-3005',
+    patientId: 'PT-1003',
+    doctorId: 'doc-rao',
+    date: daysFromToday(0),
+    startTime: '14:00',
+    durationMin: 60,
+    status: 'confirmed',
+    reason: 'Implant placement — stage 1',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4002',
+  },
+  {
+    id: 'APT-3006',
+    patientId: 'PT-1006',
+    doctorId: 'doc-menon',
+    date: daysFromToday(0),
+    startTime: '15:30',
+    durationMin: 20,
+    status: 'confirmed',
+    reason: 'Ortho adjustment',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4003',
+  },
+  {
+    id: 'APT-3007',
+    patientId: 'PT-1007',
+    doctorId: 'doc-rao',
+    date: daysFromToday(0),
+    startTime: '16:30',
+    durationMin: 30,
+    status: 'pending',
+    reason: 'Wisdom tooth follow-up',
+    isFollowUp: true,
+  },
+  // Tomorrow
+  {
+    id: 'APT-3008',
+    patientId: 'PT-1009',
+    doctorId: 'doc-rao',
+    date: daysFromToday(1),
+    startTime: '10:00',
+    durationMin: 45,
+    status: 'confirmed',
+    reason: 'Crown fitting',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4004',
+  },
+  {
+    id: 'APT-3009',
+    patientId: 'PT-1004',
+    doctorId: 'doc-menon',
+    date: daysFromToday(1),
+    startTime: '11:00',
+    durationMin: 20,
+    status: 'confirmed',
+    reason: 'Fluoride application',
+    isFollowUp: true,
+  },
+  {
+    id: 'APT-3010',
+    patientId: 'PT-1012',
+    doctorId: 'doc-menon',
+    date: daysFromToday(1),
+    startTime: '16:00',
+    durationMin: 30,
+    status: 'pending',
+    reason: 'Cleaning recall',
+    isFollowUp: true,
+  },
+  // Day after tomorrow
+  {
+    id: 'APT-3011',
+    patientId: 'PT-1011',
+    doctorId: 'doc-rao',
+    date: daysFromToday(2),
+    startTime: '09:30',
+    durationMin: 45,
+    status: 'confirmed',
+    reason: 'Periodontal maintenance',
+    isFollowUp: true,
+  },
+  {
+    id: 'APT-3012',
+    patientId: 'PT-1008',
+    doctorId: 'doc-menon',
+    date: daysFromToday(2),
+    startTime: '12:00',
+    durationMin: 30,
+    status: 'confirmed',
+    reason: 'Whitening touch-up',
+    isFollowUp: false,
+  },
+  // Further out
+  {
+    id: 'APT-3013',
+    patientId: 'PT-1001',
+    doctorId: 'doc-rao',
+    date: daysFromToday(3),
+    startTime: '10:00',
+    durationMin: 30,
+    status: 'pending',
+    reason: 'Root canal — stage 3 (final)',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4001',
+  },
+  {
+    id: 'APT-3014',
+    patientId: 'PT-1003',
+    doctorId: 'doc-rao',
+    date: daysFromToday(5),
+    startTime: '15:00',
+    durationMin: 60,
+    status: 'confirmed',
+    reason: 'Implant placement — stage 2',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4002',
+  },
+  {
+    id: 'APT-3015',
+    patientId: 'PT-1006',
+    doctorId: 'doc-menon',
+    date: daysFromToday(6),
+    startTime: '15:30',
+    durationMin: 20,
+    status: 'confirmed',
+    reason: 'Ortho adjustment',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4003',
+  },
+  // Past
+  {
+    id: 'APT-3016',
+    patientId: 'PT-1006',
+    doctorId: 'doc-menon',
+    date: daysFromToday(-1),
+    startTime: '10:00',
+    durationMin: 20,
+    status: 'completed',
+    reason: 'Ortho adjustment',
+    isFollowUp: true,
+    treatmentPlanId: 'TP-4003',
+  },
+  {
+    id: 'APT-3017',
+    patientId: 'PT-1007',
+    doctorId: 'doc-rao',
+    date: daysFromToday(-1),
+    startTime: '11:30',
+    durationMin: 45,
+    status: 'completed',
+    reason: 'Wisdom tooth extraction',
+    isFollowUp: false,
+  },
+  {
+    id: 'APT-3018',
+    patientId: 'PT-1009',
+    doctorId: 'doc-rao',
+    date: daysFromToday(-2),
+    startTime: '09:00',
+    durationMin: 45,
+    status: 'completed',
+    reason: 'Crown preparation',
+    isFollowUp: false,
+    treatmentPlanId: 'TP-4004',
+  },
+  {
+    id: 'APT-3019',
+    patientId: 'PT-1011',
+    doctorId: 'doc-rao',
+    date: daysFromToday(-3),
+    startTime: '14:00',
+    durationMin: 30,
+    status: 'no-show',
+    reason: 'Periodontal check',
+    isFollowUp: true,
+  },
+  {
+    id: 'APT-3020',
+    patientId: 'PT-1005',
+    doctorId: 'doc-rao',
+    date: daysFromToday(-7),
+    startTime: '10:00',
+    durationMin: 45,
+    status: 'completed',
+    reason: 'Denture impression',
+    isFollowUp: false,
+  },
+]
+
+export function getAppointment(id: string) {
+  return appointments.find((a) => a.id === id)
+}
+
+export function getAppointmentsForDate(date: string) {
+  return appointments
+    .filter((a) => a.date === date)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+}
+
+export function getAppointmentsForPatient(patientId: string) {
+  return appointments
+    .filter((a) => a.patientId === patientId)
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
+}
+
+export function getAppointmentsInRange(startIso: string, endIso: string) {
+  return appointments
+    .filter((a) => a.date >= startIso && a.date <= endIso)
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
+}

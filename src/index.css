@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 160 15% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 15% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 15% 12%;
+
+    --primary: 170 40% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 140 8% 94%;
+    --secondary-foreground: 160 15% 15%;
+
+    --muted: 140 8% 94%;
+    --muted-foreground: 150 8% 42%;
+
+    --accent: 170 35% 94%;
+    --accent-foreground: 170 45% 20%;
+
+    --destructive: 6 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 45% 34%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 85% 46%;
+    --warning-foreground: 30 45% 12%;
+
+    --border: 150 12% 89%;
+    --input: 150 12% 89%;
+    --ring: 170 40% 28%;
+
+    --radius: 0.625rem;
+
+    --sidebar: 150 16% 97%;
+    --sidebar-foreground: 160 15% 24%;
+    --sidebar-border: 150 12% 90%;
+    --sidebar-accent: 170 35% 91%;
+
+    --role-doctor: 32 55% 42%;
+    --role-reception: 205 32% 38%;
+    --role-patient: 140 42% 36%;
+    --role-system: 262 25% 52%;
+
+    --whatsapp: 142 70% 39%;
+  }
+
+  .dark {
+    --background: 160 14% 7%;
+    --foreground: 140 10% 90%;
+
+    --card: 160 13% 10%;
+    --card-foreground: 140 10% 90%;
+
+    --popover: 160 13% 10%;
+    --popover-foreground: 140 10% 90%;
+
+    --primary: 170 45% 55%;
+    --primary-foreground: 170 50% 8%;
+
+    --secondary: 160 10% 15%;
+    --secondary-foreground: 140 10% 88%;
+
+    --muted: 160 10% 15%;
+    --muted-foreground: 150 8% 60%;
+
+    --accent: 170 30% 16%;
+    --accent-foreground: 170 45% 78%;
+
+    --destructive: 6 70% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 40% 50%;
+    --success-foreground: 142 40% 8%;
+
+    --warning: 38 80% 56%;
+    --warning-foreground: 30 45% 10%;
+
+    --border: 160 10% 18%;
+    --input: 160 10% 18%;
+    --ring: 170 45% 55%;
+
+    --sidebar: 160 16% 5.5%;
+    --sidebar-foreground: 140 10% 85%;
+    --sidebar-border: 160 10% 15%;
+    --sidebar-accent: 170 30% 16%;
+
+    --role-doctor: 32 62% 64%;
+    --role-reception: 205 48% 70%;
+    --role-patient: 140 45% 62%;
+    --role-system: 262 42% 72%;
+
+    --whatsapp: 142 55% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    @apply bg-primary/20;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}

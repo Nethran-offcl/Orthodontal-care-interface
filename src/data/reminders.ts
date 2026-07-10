@@ -1,0 +1,97 @@
+import type { Reminder } from './types'
+import { dateTimeAt, daysFromToday } from './dates'
+
+export const reminders: Reminder[] = [
+  {
+    id: 'REM-1',
+    patientId: 'PT-1009',
+    appointmentId: 'APT-3008',
+    treatmentPlanId: 'TP-4004',
+    dueDate: daysFromToday(1),
+    status: 'rescheduled',
+    sentAt: dateTimeAt(-1, 9, 0),
+  },
+  {
+    id: 'REM-2',
+    patientId: 'PT-1004',
+    appointmentId: 'APT-3009',
+    dueDate: daysFromToday(1),
+    status: 'sent',
+    sentAt: dateTimeAt(0, 9, 0),
+  },
+  {
+    id: 'REM-3',
+    patientId: 'PT-1012',
+    appointmentId: 'APT-3010',
+    dueDate: daysFromToday(1),
+    status: 'confirmed',
+    sentAt: dateTimeAt(-1, 9, 0),
+  },
+  {
+    id: 'REM-4',
+    patientId: 'PT-1011',
+    appointmentId: 'APT-3011',
+    treatmentPlanId: 'TP-4006',
+    dueDate: daysFromToday(2),
+    status: 'scheduled',
+  },
+  {
+    id: 'REM-5',
+    patientId: 'PT-1011',
+    appointmentId: 'APT-3019',
+    treatmentPlanId: 'TP-4006',
+    dueDate: daysFromToday(-3),
+    status: 'no-response',
+    sentAt: dateTimeAt(-4, 9, 0),
+  },
+  {
+    id: 'REM-6',
+    patientId: 'PT-1003',
+    appointmentId: 'APT-3005',
+    treatmentPlanId: 'TP-4002',
+    dueDate: daysFromToday(0),
+    status: 'confirmed',
+    sentAt: dateTimeAt(-1, 9, 0),
+  },
+  {
+    id: 'REM-7',
+    patientId: 'PT-1006',
+    appointmentId: 'APT-3006',
+    treatmentPlanId: 'TP-4003',
+    dueDate: daysFromToday(0),
+    status: 'confirmed',
+    sentAt: dateTimeAt(-1, 9, 0),
+  },
+  {
+    id: 'REM-8',
+    patientId: 'PT-1001',
+    appointmentId: 'APT-3013',
+    treatmentPlanId: 'TP-4001',
+    dueDate: daysFromToday(3),
+    status: 'scheduled',
+  },
+  {
+    id: 'REM-9',
+    patientId: 'PT-1007',
+    appointmentId: 'APT-3007',
+    dueDate: daysFromToday(0),
+    status: 'no-response',
+    sentAt: dateTimeAt(-1, 18, 0),
+  },
+  {
+    id: 'REM-10',
+    patientId: 'PT-1003',
+    appointmentId: 'APT-3014',
+    treatmentPlanId: 'TP-4002',
+    dueDate: daysFromToday(5),
+    status: 'scheduled',
+  },
+]
+
+export function getRemindersDue(dateIso: string) {
+  return reminders.filter((r) => r.dueDate === dateIso)
+}
+
+export function getRemindersNeedingCall() {
+  return reminders.filter((r) => r.status === 'no-response')
+}

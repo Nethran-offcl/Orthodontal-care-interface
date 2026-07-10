@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Skill(run)",
+      "Bash(node \".smoke-tmp/check-tabs2.mjs\")",
+      "Bash(node \".smoke-tmp/smoke2.mjs\")",
+      "Bash(node \".smoke-tmp/voice-flow.mjs\")",
+      "Bash(rm -rf .smoke-tmp)",
+      "Bash(npm uninstall *)",
+      "Bash(pkill -f \"vite\")"
+    ]
+  }
+}
