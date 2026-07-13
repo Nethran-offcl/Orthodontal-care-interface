@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarPlus, FileText, Megaphone, MessageCircle, Receipt, User, UserPlus, CalendarDays } from 'lucide-react'
+import {
+  Bot,
+  CalendarPlus,
+  FileText,
+  Megaphone,
+  Receipt,
+  Stethoscope,
+  UsersRound,
+  ShieldCheck,
+  UserPlus,
+  CalendarDays,
+} from 'lucide-react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -10,34 +21,33 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
+import { Badge } from '@/components/ui/badge'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { getDoctor } from '@/data'
+import { getDoctor, doctors } from '@/data'
 
 export function CommandPalette() {
-  const { role, commandPaletteOpen, setCommandPaletteOpen, setRole } = useAppState()
+  const { commandPaletteOpen, setCommandPaletteOpen, setAiAssistantOpen } = useAppState()
+  const { login } = useAuth()
   const { patients, appointments } = useClinicStore()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const isStaff = role !== 'patient'
 
   const filteredPatients = useMemo(() => {
-    if (!isStaff) return []
     const q = query.trim().toLowerCase()
-    const list = !q
+    const tokens = q.split(/\s+/).filter(Boolean)
+    const list = tokens.length === 0
       ? patients.slice(0, 5)
-      : patients.filter(
-          (p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.phone.replace(/\s/g, '').includes(q.replace(/\s/g, '')) ||
-            p.id.toLowerCase().includes(q),
-        )
+      : patients.filter((p) => {
+          const haystack = `${p.name} ${p.phone.replace(/\s/g, '')} ${p.id}`.toLowerCase()
+          return tokens.every((t) => haystack.includes(t))
+        })
     return list.slice(0, 6)
-  }, [patients, query, isStaff])
+  }, [patients, query])
 
   const filteredAppointments = useMemo(() => {
-    if (!isStaff) return []
     const q = query.trim().toLowerCase()
     if (!q) return []
     return appointments
@@ -49,7 +59,7 @@ export function CommandPalette() {
         )
       })
       .slice(0, 5)
-  }, [appointments, patients, query, isStaff])
+  }, [appointments, patients, query])
 
   function go(path: string) {
     navigate(path)
@@ -60,12 +70,20 @@ export function CommandPalette() {
   return (
     <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
       <CommandInput
-        placeholder={isStaff ? 'Search patients, appointments, or run a command…' : 'Search or run a command…'}
+        placeholder="Search patients, appointments, or run a command…"
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
+
+        {query.trim() && (
+          <div className="flex items-center justify-end px-2 pt-2">
+            <Badge variant="accent" className="text-[10px]">
+              AI-ranked
+            </Badge>
+          </div>
+        )}
 
         {filteredPatients.length > 0 && (
           <CommandGroup heading="Patients">
@@ -111,60 +129,57 @@ export function CommandPalette() {
 
         <CommandSeparator />
         <CommandGroup heading="Quick actions">
-          {isStaff ? (
-            <>
-              <CommandItem value="new-appointment" onSelect={() => go('/appointments?new=1')}>
-                <CalendarPlus className="h-4 w-4" />
-                Book new appointment
-              </CommandItem>
-              <CommandItem value="new-patient" onSelect={() => go('/patients?new=1')}>
-                <UserPlus className="h-4 w-4" />
-                Register new patient
-              </CommandItem>
-              <CommandItem value="new-broadcast" onSelect={() => go('/messaging/broadcasts?new=1')}>
-                <Megaphone className="h-4 w-4" />
-                Compose broadcast
-              </CommandItem>
-              <CommandItem value="billing" onSelect={() => go('/billing')}>
-                <Receipt className="h-4 w-4" />
-                Open billing
-              </CommandItem>
-              <CommandItem value="reports" onSelect={() => go('/reports')}>
-                <FileText className="h-4 w-4" />
-                Open reports
-              </CommandItem>
-            </>
-          ) : (
-            <>
-              <CommandItem value="message-clinic" onSelect={() => go('/messaging')}>
-                <MessageCircle className="h-4 w-4" />
-                Message the clinic
-              </CommandItem>
-              <CommandItem value="my-bills" onSelect={() => go('/billing')}>
-                <Receipt className="h-4 w-4" />
-                View my bills
-              </CommandItem>
-              <CommandItem value="my-appointments" onSelect={() => go('/appointments')}>
-                <CalendarDays className="h-4 w-4" />
-                View my appointments
-              </CommandItem>
-            </>
-          )}
+          <CommandItem value="new-appointment" onSelect={() => go('/appointments?new=1')}>
+            <CalendarPlus className="h-4 w-4" />
+            Book new appointment
+          </CommandItem>
+          <CommandItem value="new-patient" onSelect={() => go('/patients?new=1')}>
+            <UserPlus className="h-4 w-4" />
+            Register new patient
+          </CommandItem>
+          <CommandItem value="new-broadcast" onSelect={() => go('/messaging/broadcasts?new=1')}>
+            <Megaphone className="h-4 w-4" />
+            Compose broadcast
+          </CommandItem>
+          <CommandItem value="billing" onSelect={() => go('/billing')}>
+            <Receipt className="h-4 w-4" />
+            Open billing
+          </CommandItem>
+          <CommandItem value="reports" onSelect={() => go('/reports')}>
+            <FileText className="h-4 w-4" />
+            Open reports
+          </CommandItem>
+          <CommandItem
+            value="ask-ai"
+            onSelect={() => { setAiAssistantOpen(true); setCommandPaletteOpen(false) }}
+          >
+            <Bot className="h-4 w-4" />
+            Ask AI
+          </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
         <CommandGroup heading="Preview as">
-          <CommandItem value="preview-doctor" onSelect={() => { setRole('doctor'); setCommandPaletteOpen(false) }}>
-            <User className="h-4 w-4" />
+          <CommandItem
+            value="preview-doctor"
+            onSelect={() => { login('doctor', doctors[0]?.id ?? ''); setCommandPaletteOpen(false) }}
+          >
+            <Stethoscope className="h-4 w-4" />
             Doctor view
           </CommandItem>
-          <CommandItem value="preview-frontdesk" onSelect={() => { setRole('frontdesk'); setCommandPaletteOpen(false) }}>
-            <User className="h-4 w-4" />
-            Front desk view
+          <CommandItem
+            value="preview-receptionist"
+            onSelect={() => { login('receptionist', 'staff-priya'); setCommandPaletteOpen(false) }}
+          >
+            <UsersRound className="h-4 w-4" />
+            Receptionist view
           </CommandItem>
-          <CommandItem value="preview-patient" onSelect={() => { setRole('patient'); setCommandPaletteOpen(false) }}>
-            <User className="h-4 w-4" />
-            Patient view
+          <CommandItem
+            value="preview-admin"
+            onSelect={() => { login('admin', 'staff-meera'); setCommandPaletteOpen(false) }}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Administrator view
           </CommandItem>
         </CommandGroup>
       </CommandList>

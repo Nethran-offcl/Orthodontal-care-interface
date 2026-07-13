@@ -4,10 +4,15 @@ import type {
   Appointment,
   AppointmentStatus,
   AppNotification,
+  Attachment,
   Broadcast,
   BroadcastStatus,
   ChartEntry,
   Conversation,
+  ConversationStatus,
+  Escalation,
+  EscalationStatus,
+  ImageAnnotation,
   Invoice,
   MessageTemplate,
   Patient,
@@ -15,6 +20,7 @@ import type {
   Prescription,
   Reminder,
   ReminderStatus,
+  Role,
   TreatmentPlan,
   TreatmentStage,
   TreatmentStageStatus,
@@ -25,6 +31,8 @@ import {
   broadcasts as seedBroadcasts,
   chartEntries as seedChartEntries,
   conversations as seedConversations,
+  escalations as seedEscalations,
+  getDoctor,
   patientImages as seedImages,
   invoices as seedInvoices,
   messageTemplates as seedTemplates,
@@ -45,6 +53,7 @@ interface Store {
   images: PatientImage[]
   invoices: Invoice[]
   conversations: Conversation[]
+  escalations: Escalation[]
   reminders: Reminder[]
   broadcasts: Broadcast[]
   templates: MessageTemplate[]
@@ -61,6 +70,7 @@ const initialStore: Store = {
   images: seedImages,
   invoices: seedInvoices,
   conversations: seedConversations,
+  escalations: seedEscalations,
   reminders: seedReminders,
   broadcasts: seedBroadcasts,
   templates: seedTemplates,
@@ -91,6 +101,17 @@ interface ClinicStoreValue extends Store {
   sendMessage: (patientId: string, text: string) => void
   markConversationRead: (patientId: string) => void
   simulatePatientReply: (patientId: string, text: string) => void
+  assignConversation: (id: string, assigneeId: string) => void
+  updateConversationStatus: (id: string, status: ConversationStatus) => void
+  addInternalNote: (id: string, author: string, text: string) => void
+  addAttachment: (id: string, attachment: Omit<Attachment, 'id' | 'time'>) => void
+  createEscalation: (
+    input: Omit<Escalation, 'id' | 'status' | 'createdAt' | 'comments' | 'history'>,
+  ) => Escalation
+  updateEscalationStatus: (id: string, status: EscalationStatus, actor: string) => void
+  assignEscalation: (id: string, assignedRole: Role, assignedToId: string, actor: string) => void
+  addEscalationComment: (id: string, author: string, text: string) => void
+  addImageAnnotation: (imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => void
   updateReminderStatus: (id: string, status: ReminderStatus) => void
   createBroadcast: (bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => Broadcast
   submitBroadcastForApproval: (id: string) => void
@@ -146,6 +167,24 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
   const addAppointment = useCallback((appt: Omit<Appointment, 'id'>) => {
     const newAppt: Appointment = { ...appt, id: nextId('APT') }
     setStore((s) => ({ ...s, appointments: [...s.appointments, newAppt] }))
+    setStore((s) => {
+      const patient = s.patients.find((p) => p.id === appt.patientId)
+      return {
+        ...s,
+        notifications: [
+          {
+            id: nextId('N'),
+            title: 'Appointment booked',
+            description: `${patient?.name ?? 'A patient'} — ${appt.date} at ${appt.startTime}.`,
+            time: new Date().toISOString(),
+            read: false,
+            type: 'system',
+            href: `/appointments?focus=${newAppt.id}`,
+          },
+          ...s.notifications,
+        ],
+      }
+    })
     return newAppt
   }, [])
 
@@ -180,6 +219,26 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
   const addChartEntry = useCallback((entry: Omit<ChartEntry, 'id'>) => {
     const newEntry: ChartEntry = { ...entry, id: nextId('CE') }
     setStore((s) => ({ ...s, chartEntries: [newEntry, ...s.chartEntries] }))
+    if (entry.source === 'voice') {
+      setStore((s) => {
+        const patient = s.patients.find((p) => p.id === entry.patientId)
+        return {
+          ...s,
+          notifications: [
+            {
+              id: nextId('N'),
+              title: 'AI review required',
+              description: `Voice-to-chart entry for ${patient?.name ?? 'a patient'} needs a quick confirmation.`,
+              time: new Date().toISOString(),
+              read: false,
+              type: 'ai-review',
+              href: '/ai-charting',
+            },
+            ...s.notifications,
+          ],
+        }
+      })
+    }
     return newEntry
   }, [])
 
@@ -223,6 +282,24 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
   const addImage = useCallback((image: Omit<PatientImage, 'id'>) => {
     const newImage: PatientImage = { ...image, id: nextId('IMG') }
     setStore((s) => ({ ...s, images: [...s.images, newImage] }))
+    setStore((s) => {
+      const patient = s.patients.find((p) => p.id === image.patientId)
+      return {
+        ...s,
+        notifications: [
+          {
+            id: nextId('N'),
+            title: 'Image uploaded',
+            description: `A new ${image.category.replace('-', ' ')} photo was added for ${patient?.name ?? 'a patient'}.`,
+            time: new Date().toISOString(),
+            read: false,
+            type: 'image',
+            href: `/patients/${image.patientId}?tab=images`,
+          },
+          ...s.notifications,
+        ],
+      }
+    })
     return newImage
   }, [])
 
@@ -253,6 +330,10 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
         lastMessageAt: message.time,
         unread: 0,
         slaMinutes: 0,
+        channel: 'whatsapp',
+        status: 'open',
+        internalNotes: [],
+        attachments: [],
       }
       return { ...s, conversations: [...s.conversations, newConversation] }
     })
@@ -284,11 +365,234 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
     }))
   }, [])
 
+  const assignConversation = useCallback(
+    (id: string, assigneeId: string) => {
+      setStore((s) => ({
+        ...s,
+        conversations: s.conversations.map((c) => (c.id === id ? { ...c, assigneeId } : c)),
+      }))
+      const doctor = getDoctor(assigneeId)
+      if (doctor) {
+        setStore((s) => {
+          const conv = s.conversations.find((c) => c.id === id)
+          const patient = conv ? s.patients.find((p) => p.id === conv.patientId) : undefined
+          return {
+            ...s,
+            notifications: [
+              {
+                id: nextId('N'),
+                title: 'Doctor assigned',
+                description: `${doctor.name} was assigned to ${patient?.name ?? 'a patient'}'s conversation.`,
+                time: new Date().toISOString(),
+                read: false,
+                type: 'assignment',
+                href: '/messaging',
+              },
+              ...s.notifications,
+            ],
+          }
+        })
+      }
+      addAuditEntry('Priya Kulkarni', 'Assigned conversation', id)
+    },
+    [addAuditEntry],
+  )
+
+  const updateConversationStatus = useCallback((id: string, status: ConversationStatus) => {
+    setStore((s) => ({
+      ...s,
+      conversations: s.conversations.map((c) => (c.id === id ? { ...c, status } : c)),
+    }))
+  }, [])
+
+  const addInternalNote = useCallback((id: string, author: string, text: string) => {
+    setStore((s) => ({
+      ...s,
+      conversations: s.conversations.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              internalNotes: [
+                ...c.internalNotes,
+                { id: nextId('IN'), author, text, time: new Date().toISOString() },
+              ],
+            }
+          : c,
+      ),
+    }))
+  }, [])
+
+  const addAttachment = useCallback((id: string, attachment: Omit<Attachment, 'id' | 'time'>) => {
+    setStore((s) => ({
+      ...s,
+      conversations: s.conversations.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              attachments: [
+                ...c.attachments,
+                { ...attachment, id: nextId('AT'), time: new Date().toISOString() },
+              ],
+            }
+          : c,
+      ),
+    }))
+  }, [])
+
+  const createEscalation = useCallback(
+    (input: Omit<Escalation, 'id' | 'status' | 'createdAt' | 'comments' | 'history'>) => {
+      const newEsc: Escalation = {
+        ...input,
+        id: nextId('ESC'),
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        comments: [],
+        history: [
+          { id: nextId('EH'), action: 'Escalation created', actor: input.createdBy, time: new Date().toISOString() },
+        ],
+      }
+      setStore((s) => ({ ...s, escalations: [newEsc, ...s.escalations] }))
+      setStore((s) => {
+        const patient = s.patients.find((p) => p.id === input.patientId)
+        return {
+          ...s,
+          notifications: [
+            {
+              id: nextId('N'),
+              title: 'Escalation created',
+              description: `${patient?.name ?? 'A patient'} — ${input.reason.slice(0, 80)}${input.reason.length > 80 ? '…' : ''}`,
+              time: new Date().toISOString(),
+              read: false,
+              type: 'escalation',
+              href: '/messaging/escalations',
+            },
+            ...s.notifications,
+          ],
+        }
+      })
+      addAuditEntry(input.createdBy, 'Created escalation', newEsc.id)
+      return newEsc
+    },
+    [addAuditEntry],
+  )
+
+  const updateEscalationStatus = useCallback((id: string, status: EscalationStatus, actor: string) => {
+    setStore((s) => ({
+      ...s,
+      escalations: s.escalations.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              status,
+              history: [
+                ...e.history,
+                { id: nextId('EH'), action: `Marked ${status.replace('-', ' ')}`, actor, time: new Date().toISOString() },
+              ],
+            }
+          : e,
+      ),
+    }))
+  }, [])
+
+  const assignEscalation = useCallback(
+    (id: string, assignedRole: Role, assignedToId: string, actor: string) => {
+      setStore((s) => ({
+        ...s,
+        escalations: s.escalations.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                assignedRole,
+                assignedToId,
+                history: [
+                  ...e.history,
+                  { id: nextId('EH'), action: 'Reassigned', actor, time: new Date().toISOString() },
+                ],
+              }
+            : e,
+        ),
+      }))
+      if (assignedRole === 'doctor') {
+        const doctor = getDoctor(assignedToId)
+        setStore((s) => {
+          const esc = s.escalations.find((e) => e.id === id)
+          const patient = esc ? s.patients.find((p) => p.id === esc.patientId) : undefined
+          return {
+            ...s,
+            notifications: [
+              {
+                id: nextId('N'),
+                title: 'Doctor assigned',
+                description: `${doctor?.name ?? 'A doctor'} was assigned to an escalation for ${patient?.name ?? 'a patient'}.`,
+                time: new Date().toISOString(),
+                read: false,
+                type: 'assignment',
+                href: '/messaging/escalations',
+              },
+              ...s.notifications,
+            ],
+          }
+        })
+      }
+    },
+    [],
+  )
+
+  const addEscalationComment = useCallback((id: string, author: string, text: string) => {
+    setStore((s) => ({
+      ...s,
+      escalations: s.escalations.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              comments: [...e.comments, { id: nextId('ECM'), author, text, time: new Date().toISOString() }],
+              history: [
+                ...e.history,
+                { id: nextId('EH'), action: 'Comment added', actor: author, time: new Date().toISOString() },
+              ],
+            }
+          : e,
+      ),
+    }))
+  }, [])
+
+  const addImageAnnotation = useCallback((imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => {
+    setStore((s) => ({
+      ...s,
+      images: s.images.map((img) =>
+        img.id === imageId
+          ? { ...img, annotations: [...img.annotations, { ...annotation, id: nextId('AN') }] }
+          : img,
+      ),
+    }))
+  }, [])
+
   const updateReminderStatus = useCallback((id: string, status: ReminderStatus) => {
     setStore((s) => ({
       ...s,
       reminders: s.reminders.map((r) => (r.id === id ? { ...r, status } : r)),
     }))
+    if (status === 'no-response') {
+      setStore((s) => {
+        const reminder = s.reminders.find((r) => r.id === id)
+        const patient = reminder ? s.patients.find((p) => p.id === reminder.patientId) : undefined
+        return {
+          ...s,
+          notifications: [
+            {
+              id: nextId('N'),
+              title: 'Reminder failed to get a response',
+              description: `${patient?.name ?? 'A patient'} hasn't responded to their follow-up reminder.`,
+              time: new Date().toISOString(),
+              read: false,
+              type: 'reminder',
+              href: '/messaging/reminders',
+            },
+            ...s.notifications,
+          ],
+        }
+      })
+    }
   }, [])
 
   const createBroadcast = useCallback((bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => {
@@ -416,6 +720,15 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
       sendMessage,
       markConversationRead,
       simulatePatientReply,
+      assignConversation,
+      updateConversationStatus,
+      addInternalNote,
+      addAttachment,
+      createEscalation,
+      updateEscalationStatus,
+      assignEscalation,
+      addEscalationComment,
+      addImageAnnotation,
       updateReminderStatus,
       createBroadcast,
       submitBroadcastForApproval,
@@ -445,6 +758,15 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
       sendMessage,
       markConversationRead,
       simulatePatientReply,
+      assignConversation,
+      updateConversationStatus,
+      addInternalNote,
+      addAttachment,
+      createEscalation,
+      updateEscalationStatus,
+      assignEscalation,
+      addEscalationComment,
+      addImageAnnotation,
       updateReminderStatus,
       createBroadcast,
       submitBroadcastForApproval,

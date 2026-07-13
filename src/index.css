@@ -47,7 +47,7 @@
 
     --role-doctor: 32 55% 42%;
     --role-reception: 205 32% 38%;
-    --role-patient: 140 42% 36%;
+    --role-admin: 262 30% 45%;
     --role-system: 262 25% 52%;
 
     --whatsapp: 142 70% 39%;
@@ -95,7 +95,7 @@
 
     --role-doctor: 32 62% 64%;
     --role-reception: 205 48% 70%;
-    --role-patient: 140 45% 62%;
+    --role-admin: 262 45% 75%;
     --role-system: 262 42% 72%;
 
     --whatsapp: 142 55% 48%;

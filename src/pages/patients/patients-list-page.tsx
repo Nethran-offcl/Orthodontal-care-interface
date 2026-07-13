@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, UserPlus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -9,13 +9,11 @@ import { Badge } from '@/components/ui/badge'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { EmptyState } from '@/components/shared/empty-state'
 import { NewPatientDialog } from '@/pages/patients/new-patient-dialog'
-import { useAppState } from '@/state/app-state'
 import { useClinicStore } from '@/state/store'
 import { getDoctor } from '@/data'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 
 export function PatientsListPage() {
-  const { role } = useAppState()
   const { patients, appointments } = useClinicStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState('')
@@ -50,8 +48,6 @@ export function PatientsListPage() {
       .sort((a, b) => b.date.localeCompare(a.date))
     return past[0]?.date
   }
-
-  if (role === 'patient') return <Navigate to="/" replace />
 
   return (
     <div>

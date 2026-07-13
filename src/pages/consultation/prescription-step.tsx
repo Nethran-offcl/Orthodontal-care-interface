@@ -1,18 +1,21 @@
 import { useState } from 'react'
-import { Pill, Plus, Trash2 } from 'lucide-react'
+import { Pill, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { draftPrescription } from '@/lib/ai-mock'
 import type { PrescriptionMedicine } from '@/data/types'
 
 export function PrescriptionStep({
   initialMedicines,
+  diagnosis,
   onSave,
   onSkip,
 }: {
   initialMedicines: PrescriptionMedicine[]
+  diagnosis?: string
   onSave: (medicines: PrescriptionMedicine[], notes: string) => void
   onSkip: () => void
 }) {
@@ -31,6 +34,10 @@ export function PrescriptionStep({
 
   function removeRow(index: number) {
     setMedicines((meds) => meds.filter((_, i) => i !== index))
+  }
+
+  function draftWithAi() {
+    setMedicines((meds) => [...meds, ...draftPrescription(diagnosis ?? '')])
   }
 
   const validMedicines = medicines.filter((m) => m.name.trim())
@@ -81,10 +88,16 @@ export function PrescriptionStep({
           </div>
         )}
 
-        <Button type="button" variant="outline" size="sm" onClick={addRow}>
-          <Plus className="h-3.5 w-3.5" />
-          Add medicine
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={addRow}>
+            <Plus className="h-3.5 w-3.5" />
+            Add medicine
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={draftWithAi}>
+            <Sparkles className="h-3.5 w-3.5" />
+            Draft with AI
+          </Button>
+        </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="rx-notes">Notes for patient</Label>

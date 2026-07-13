@@ -1,16 +1,11 @@
-import { Navigate } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAppState } from '@/state/app-state'
 import { ClinicProfileTab } from '@/pages/settings/tabs/clinic-profile-tab'
 import { UsersRolesTab } from '@/pages/settings/tabs/users-roles-tab'
 import { WhatsAppConfigTab } from '@/pages/settings/tabs/whatsapp-config-tab'
 import { AuditLogTab } from '@/pages/settings/tabs/audit-log-tab'
 
 export function SettingsPage() {
-  const { role } = useAppState()
-  if (role === 'patient') return <Navigate to="/" replace />
-
   return (
     <div>
       <PageHeader title="Settings" description="Clinic configuration, staff access, and WhatsApp setup." />

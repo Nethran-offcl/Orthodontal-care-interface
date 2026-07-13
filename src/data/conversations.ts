@@ -8,6 +8,12 @@ export const conversations: Conversation[] = [
     unread: 0,
     slaMinutes: 15,
     lastMessageAt: dateTimeAt(0, 7, 30),
+    channel: 'whatsapp',
+    status: 'resolved',
+    assigneeId: 'staff-priya',
+    priority: 'low',
+    internalNotes: [],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -30,6 +36,19 @@ export const conversations: Conversation[] = [
     unread: 0,
     slaMinutes: 40,
     lastMessageAt: dateTimeAt(0, 8, 10),
+    channel: 'whatsapp',
+    status: 'open',
+    assigneeId: 'doc-rao',
+    priority: 'medium',
+    internalNotes: [
+      {
+        id: 'IN-1',
+        author: 'Dr. Arjun Rao',
+        text: 'Mild sensitivity is expected post-obturation — replying with reassurance, will re-check at next visit.',
+        time: dateTimeAt(0, 8, 20),
+      },
+    ],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -65,6 +84,12 @@ export const conversations: Conversation[] = [
     unread: 1,
     slaMinutes: 155,
     lastMessageAt: dateTimeAt(0, 7, 5),
+    channel: 'whatsapp',
+    status: 'pending',
+    assigneeId: 'staff-priya',
+    priority: 'medium',
+    internalNotes: [],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -87,6 +112,12 @@ export const conversations: Conversation[] = [
     unread: 1,
     slaMinutes: 22,
     lastMessageAt: dateTimeAt(0, 9, 50),
+    channel: 'whatsapp',
+    status: 'resolved',
+    assigneeId: 'staff-priya',
+    priority: 'low',
+    internalNotes: [],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -109,6 +140,19 @@ export const conversations: Conversation[] = [
     unread: 1,
     slaMinutes: 610,
     lastMessageAt: dateTimeAt(-3, 15, 30),
+    channel: 'whatsapp',
+    status: 'waiting',
+    assigneeId: 'staff-priya',
+    priority: 'high',
+    internalNotes: [
+      {
+        id: 'IN-2',
+        author: 'Priya Kulkarni',
+        text: 'Called twice, no answer. Trying again tomorrow morning before escalating.',
+        time: dateTimeAt(-2, 11, 0),
+      },
+    ],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -132,18 +176,26 @@ export const conversations: Conversation[] = [
     unread: 0,
     slaMinutes: 12,
     lastMessageAt: dateTimeAt(-1, 20, 15),
+    channel: 'instagram',
+    status: 'open',
+    assigneeId: 'doc-rao',
+    priority: 'medium',
+    internalNotes: [],
+    attachments: [
+      { id: 'AT-1', name: 'cheek-swelling.jpg', kind: 'image', sizeKb: 842, time: dateTimeAt(-1, 20, 3) },
+    ],
     messages: [
       {
         id: 'm1',
         sender: 'clinic',
-        text: 'Hi Arjun, hope you\'re recovering well after today\'s extraction. Take the antibiotics as prescribed and avoid hard food for a few days.',
+        text: "Hi Arjun, hope you're recovering well after today's extraction. Take the antibiotics as prescribed and avoid hard food for a few days.",
         time: dateTimeAt(-1, 19, 0),
         status: 'read',
       },
       {
         id: 'm2',
         sender: 'patient',
-        text: 'Thank you doctor. There\'s mild swelling on the cheek, is that expected?',
+        text: "Thank you doctor. There's mild swelling on the cheek, is that expected?",
         time: dateTimeAt(-1, 20, 3),
       },
       {
@@ -161,6 +213,12 @@ export const conversations: Conversation[] = [
     unread: 0,
     slaMinutes: 5,
     lastMessageAt: dateTimeAt(0, 6, 30),
+    channel: 'facebook',
+    status: 'resolved',
+    assigneeId: 'staff-priya',
+    priority: 'low',
+    internalNotes: [],
+    attachments: [],
     messages: [
       {
         id: 'm1',
@@ -183,6 +241,12 @@ export const conversations: Conversation[] = [
     unread: 0,
     slaMinutes: 8,
     lastMessageAt: dateTimeAt(0, 5, 0),
+    channel: 'whatsapp',
+    status: 'resolved',
+    assigneeId: 'staff-priya',
+    priority: 'low',
+    internalNotes: [],
+    attachments: [],
     messages: [
       {
         id: 'm1',

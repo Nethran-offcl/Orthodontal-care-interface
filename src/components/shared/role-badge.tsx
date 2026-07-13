@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 const roleStyles = {
   doctor: 'text-role-doctor bg-role-doctor/10',
   reception: 'text-role-reception bg-role-reception/10',
-  patient: 'text-role-patient bg-role-patient/10',
+  admin: 'text-role-admin bg-role-admin/10',
   system: 'text-role-system bg-role-system/10',
 } as const
 

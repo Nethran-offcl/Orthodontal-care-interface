@@ -2,6 +2,9 @@ import { Badge } from '@/components/ui/badge'
 import type {
   AppointmentStatus,
   BroadcastStatus,
+  ConversationStatus,
+  EscalationPriority,
+  EscalationStatus,
   InvoiceStatus,
   ReminderStatus,
   TreatmentStageStatus,
@@ -60,6 +63,38 @@ export function BroadcastStatusBadge({ status }: { status: BroadcastStatus }) {
     rejected: { label: 'Rejected', variant: 'destructive' },
   }
   const { label, variant } = map[status]
+  return <Badge variant={variant}>{label}</Badge>
+}
+
+export function ConversationStatusBadge({ status }: { status: ConversationStatus }) {
+  const map: Record<ConversationStatus, { label: string; variant: 'success' | 'warning' | 'secondary' | 'accent' | 'destructive' }> = {
+    open: { label: 'Open', variant: 'accent' },
+    pending: { label: 'Pending', variant: 'warning' },
+    waiting: { label: 'Waiting', variant: 'destructive' },
+    resolved: { label: 'Resolved', variant: 'success' },
+  }
+  const { label, variant } = map[status]
+  return <Badge variant={variant}>{label}</Badge>
+}
+
+export function EscalationStatusBadge({ status }: { status: EscalationStatus }) {
+  const map: Record<EscalationStatus, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
+    open: { label: 'Open', variant: 'warning' },
+    'in-progress': { label: 'In progress', variant: 'secondary' },
+    resolved: { label: 'Resolved', variant: 'success' },
+  }
+  const { label, variant } = map[status]
+  return <Badge variant={variant}>{label}</Badge>
+}
+
+export function EscalationPriorityBadge({ priority }: { priority: EscalationPriority }) {
+  const map: Record<EscalationPriority, { label: string; variant: 'success' | 'warning' | 'secondary' | 'destructive' }> = {
+    low: { label: 'Low', variant: 'secondary' },
+    medium: { label: 'Medium', variant: 'warning' },
+    high: { label: 'High', variant: 'destructive' },
+    urgent: { label: 'Urgent', variant: 'destructive' },
+  }
+  const { label, variant } = map[priority]
   return <Badge variant={variant}>{label}</Badge>
 }
 

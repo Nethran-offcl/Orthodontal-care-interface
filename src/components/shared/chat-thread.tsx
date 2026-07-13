@@ -11,13 +11,19 @@ export function ChatThread({
   onSend,
   placeholder = 'Type a WhatsApp message…',
   inputDisabled = false,
+  draft: controlledDraft,
+  onDraftChange,
 }: {
   conversation: Conversation | undefined
   onSend: (text: string) => void
   placeholder?: string
   inputDisabled?: boolean
+  draft?: string
+  onDraftChange?: (value: string) => void
 }) {
-  const [draft, setDraft] = useState('')
+  const [internalDraft, setInternalDraft] = useState('')
+  const draft = controlledDraft ?? internalDraft
+  const setDraft = onDraftChange ?? setInternalDraft
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

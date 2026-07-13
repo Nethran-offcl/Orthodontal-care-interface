@@ -6,14 +6,11 @@ import { InvoiceStatusBadge } from '@/components/shared/status-badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RecordPaymentDialog } from '@/pages/patients/record-payment-dialog'
-import { useAppState } from '@/state/app-state'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Invoice } from '@/data/types'
 
 export function InvoicesTab({ invoices }: { invoices: Invoice[] }) {
-  const { role } = useAppState()
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null)
-  const canRecordPayment = role !== 'patient'
 
   const totalBilled = invoices.reduce((s, i) => s + i.total, 0)
   const totalPaid = invoices.reduce((s, i) => s + i.paid, 0)
@@ -80,11 +77,9 @@ export function InvoicesTab({ invoices }: { invoices: Invoice[] }) {
                 {due > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-warning">{formatCurrency(due)} due</span>
-                    {canRecordPayment && (
-                      <Button size="sm" onClick={() => setPayingInvoice(inv)}>
-                        Record payment
-                      </Button>
-                    )}
+                    <Button size="sm" onClick={() => setPayingInvoice(inv)}>
+                      Record payment
+                    </Button>
                   </div>
                 )}
               </div>

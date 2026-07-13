@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { LogOut, Moon, Sun, User, UserCog, Stethoscope, UsersRound, Check } from 'lucide-react'
+import { LogOut, Moon, Sun, UserCog, Stethoscope, UsersRound, ShieldCheck, Check } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,35 +20,36 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
-import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { useTheme } from '@/hooks/use-theme'
-import { getDoctor, frontDeskStaff, getPatient } from '@/data'
+import { getDoctor, getStaff, doctors } from '@/data'
 import type { Role } from '@/data/types'
 
 function useCurrentIdentity() {
-  const { role, currentDoctorId, currentPatientId } = useAppState()
+  const { role, userId } = useAuth()
   if (role === 'doctor') {
-    const doc = getDoctor(currentDoctorId)
-    return { name: doc?.name ?? 'Doctor', subtitle: doc?.title ?? '', id: currentDoctorId }
+    const doc = getDoctor(userId ?? '')
+    return { name: doc?.name ?? 'Doctor', subtitle: doc?.title ?? '', id: userId ?? 'doctor' }
   }
-  if (role === 'frontdesk') {
-    return { name: frontDeskStaff.name, subtitle: frontDeskStaff.title, id: frontDeskStaff.id }
+  if (role === 'receptionist' || role === 'admin') {
+    const staff = getStaff(userId ?? '')
+    return { name: staff?.name ?? 'Staff', subtitle: staff?.title ?? '', id: userId ?? role }
   }
-  const patient = getPatient(currentPatientId)
-  return { name: patient?.name ?? 'Patient', subtitle: `Patient ID ${currentPatientId}`, id: currentPatientId }
+  return { name: 'Guest', subtitle: '', id: 'guest' }
 }
 
-const roleOptions: { role: Role; label: string; icon: typeof Stethoscope }[] = [
-  { role: 'doctor', label: 'Doctor', icon: Stethoscope },
-  { role: 'frontdesk', label: 'Front Desk / Admin', icon: UsersRound },
-  { role: 'patient', label: 'Patient', icon: User },
+const roleOptions: { role: Role; label: string; icon: typeof Stethoscope; defaultUserId: string }[] = [
+  { role: 'doctor', label: 'Doctor', icon: Stethoscope, defaultUserId: doctors[0]?.id ?? '' },
+  { role: 'receptionist', label: 'Receptionist', icon: UsersRound, defaultUserId: 'staff-priya' },
+  { role: 'admin', label: 'Administrator', icon: ShieldCheck, defaultUserId: 'staff-meera' },
 ]
 
 export function ProfileMenu() {
-  const { role, setRole } = useAppState()
+  const { role, login, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const identity = useCurrentIdentity()
   const [accountOpen, setAccountOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <>
@@ -68,7 +70,7 @@ export function ProfileMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Preview as</DropdownMenuLabel>
           {roleOptions.map((opt) => (
-            <DropdownMenuItem key={opt.role} onSelect={() => setRole(opt.role)}>
+            <DropdownMenuItem key={opt.role} onSelect={() => login(opt.role, opt.defaultUserId)}>
               <opt.icon className="h-4 w-4" />
               <span className="flex-1">{opt.label}</span>
               {role === opt.role && <Check className="h-4 w-4 text-primary" />}
@@ -86,7 +88,11 @@ export function ProfileMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             destructive
-            onSelect={() => toast('Signed out', { description: 'This is a prototype — no account was actually signed out.' })}
+            onSelect={() => {
+              logout()
+              toast('Signed out')
+              navigate('/')
+            }}
           >
             <LogOut className="h-4 w-4" />
             Log out

@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { doctors } from '@/data'
 import { daysFromToday } from '@/data/dates'
 import { useClinicStore } from '@/state/store'
-import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 
 export function NewTreatmentPlanDialog({
   patientId,
@@ -28,7 +28,8 @@ export function NewTreatmentPlanDialog({
   onOpenChange: (o: boolean) => void
 }) {
   const { addTreatmentPlan } = useClinicStore()
-  const { currentDoctorId } = useAppState()
+  const { role, userId } = useAuth()
+  const currentDoctorId = role === 'doctor' && userId ? userId : (doctors[0]?.id ?? '')
   const [title, setTitle] = useState('')
   const [doctorId, setDoctorId] = useState(currentDoctorId)
   const [firstStage, setFirstStage] = useState('')

@@ -209,6 +209,7 @@ export function ConsultationWorkspacePage() {
       {step === 2 && generated && (
         <PrescriptionStep
           initialMedicines={generated.structured.suggestedMedicines}
+          diagnosis={generated.structured.diagnosis}
           onSave={handlePrescriptionSave}
           onSkip={() => unlock(3)}
         />

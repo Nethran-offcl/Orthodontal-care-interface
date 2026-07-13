@@ -1,5 +1,16 @@
 import { useNavigate } from 'react-router-dom'
-import { Bell, Megaphone, CreditCard, MessageSquare, Info, CalendarClock } from 'lucide-react'
+import {
+  Bell,
+  Megaphone,
+  CreditCard,
+  MessageSquare,
+  Info,
+  CalendarClock,
+  ArrowUpCircle,
+  UserCog,
+  ImageIcon,
+  Sparkles,
+} from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -15,6 +26,10 @@ const iconMap: Record<NotificationType, typeof Bell> = {
   message: MessageSquare,
   system: Info,
   broadcast: Megaphone,
+  escalation: ArrowUpCircle,
+  assignment: UserCog,
+  image: ImageIcon,
+  'ai-review': Sparkles,
 }
 
 export function NotificationsPanel() {

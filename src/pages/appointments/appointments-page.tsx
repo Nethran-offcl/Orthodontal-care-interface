@@ -28,7 +28,7 @@ import { WeekView } from '@/pages/appointments/week-view'
 import { MonthView } from '@/pages/appointments/month-view'
 import { NewAppointmentDialog } from '@/pages/appointments/new-appointment-dialog'
 import { AppointmentDetailSheet } from '@/pages/appointments/appointment-detail-sheet'
-import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { doctors } from '@/data'
 import { iso } from '@/data/dates'
@@ -36,18 +36,18 @@ import { iso } from '@/data/dates'
 type ViewMode = 'day' | 'week' | 'month'
 
 export function AppointmentsPage() {
-  const { role, currentDoctorId, currentPatientId } = useAppState()
+  const { role, userId } = useAuth()
   const { appointments, patients } = useClinicStore()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [view, setView] = useState<ViewMode>('day')
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [doctorFilter, setDoctorFilter] = useState<string>(role === 'doctor' ? currentDoctorId : 'all')
+  const [doctorFilter, setDoctorFilter] = useState<string>(role === 'doctor' && userId ? userId : 'all')
   const [newOpen, setNewOpen] = useState(false)
   const [focusedId, setFocusedId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (searchParams.get('new') === '1' && role !== 'patient') {
+    if (searchParams.get('new') === '1') {
       setNewOpen(true)
       const next = new URLSearchParams(searchParams)
       next.delete('new')
@@ -66,10 +66,9 @@ export function AppointmentsPage() {
   }, [])
 
   const scopedAppointments = useMemo(() => {
-    if (role === 'patient') return appointments.filter((a) => a.patientId === currentPatientId)
     if (doctorFilter === 'all') return appointments
     return appointments.filter((a) => a.doctorId === doctorFilter)
-  }, [appointments, role, currentPatientId, doctorFilter])
+  }, [appointments, doctorFilter])
 
   const dayIso = iso(selectedDate)
   const dayAppointments = scopedAppointments
@@ -104,19 +103,13 @@ export function AppointmentsPage() {
   return (
     <div>
       <PageHeader
-        title={role === 'patient' ? 'My appointments' : 'Appointments'}
-        description={
-          role === 'patient'
-            ? 'Everything upcoming and past, in one place.'
-            : 'Book, confirm, and manage every visit across the clinic.'
-        }
+        title="Appointments"
+        description="Book, confirm, and manage every visit across the clinic."
         actions={
-          role !== 'patient' ? (
-            <Button onClick={() => setNewOpen(true)}>
-              <CalendarPlus className="h-4 w-4" />
-              Book appointment
-            </Button>
-          ) : undefined
+          <Button onClick={() => setNewOpen(true)}>
+            <CalendarPlus className="h-4 w-4" />
+            Book appointment
+          </Button>
         }
       />
 
@@ -135,7 +128,7 @@ export function AppointmentsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {role !== 'patient' && role !== 'doctor' && (
+          {role !== 'doctor' && (
             <Select value={doctorFilter} onValueChange={setDoctorFilter}>
               <SelectTrigger className="w-44">
                 <SelectValue />
@@ -166,7 +159,7 @@ export function AppointmentsPage() {
             <DayView
               appointments={dayAppointments}
               patients={patients}
-              showDoctor={role !== 'doctor' && role !== 'patient'}
+              showDoctor={role !== 'doctor'}
               onSelect={setFocusedId}
             />
           )}

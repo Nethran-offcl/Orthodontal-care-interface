@@ -17,6 +17,9 @@ export const patients: Patient[] = [
     balanceDue: 3200,
     totalBilled: 28400,
     primaryDoctorId: 'doc-rao',
+    medicalConditions: ['Hypothyroidism'],
+    currentMedications: ['Levothyroxine 50mcg — once daily'],
+    dentalHistoryNotes: 'History of bruxism, wears a night guard. No prior implant work.',
   },
   {
     id: 'PT-1002',
@@ -49,6 +52,9 @@ export const patients: Patient[] = [
     balanceDue: 18500,
     totalBilled: 92000,
     primaryDoctorId: 'doc-rao',
+    medicalConditions: ['Type 2 Diabetes (controlled)'],
+    currentMedications: ['Metformin 500mg — twice daily'],
+    dentalHistoryNotes: 'Previous root canal on tooth 46. Mild gum recession noted at last cleaning.',
   },
   {
     id: 'PT-1004',
@@ -81,6 +87,9 @@ export const patients: Patient[] = [
     balanceDue: 0,
     totalBilled: 54000,
     primaryDoctorId: 'doc-rao',
+    medicalConditions: ['Hypertension'],
+    currentMedications: ['Amlodipine 5mg — once daily'],
+    dentalHistoryNotes: 'Long-standing patient, excellent recall compliance over 4 years.',
   },
   {
     id: 'PT-1006',
@@ -177,6 +186,9 @@ export const patients: Patient[] = [
     balanceDue: 2100,
     totalBilled: 71500,
     primaryDoctorId: 'doc-rao',
+    medicalConditions: ['Osteoporosis'],
+    currentMedications: ['Alendronate 70mg — weekly'],
+    dentalHistoryNotes: 'On bisphosphonate therapy — flagged for extraction/surgical risk review before invasive procedures.',
   },
   {
     id: 'PT-1012',

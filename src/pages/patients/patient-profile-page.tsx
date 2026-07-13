@@ -9,18 +9,22 @@ import { Badge } from '@/components/ui/badge'
 import { EditPatientDialog } from '@/pages/patients/edit-patient-dialog'
 import { NewAppointmentDialog } from '@/pages/appointments/new-appointment-dialog'
 import { OverviewTab } from '@/pages/patients/tabs/overview-tab'
-import { ChartHistoryTab } from '@/pages/patients/tabs/chart-history-tab'
+import { AppointmentsTab } from '@/pages/patients/tabs/appointments-tab'
+import { PatientTimelineTab } from '@/pages/patients/tabs/patient-timeline-tab'
+import { MedicalHistoryTab } from '@/pages/patients/tabs/medical-history-tab'
 import { TreatmentPlanTab } from '@/pages/patients/tabs/treatment-plan-tab'
+import { ChartHistoryTab } from '@/pages/patients/tabs/chart-history-tab'
+import { VoiceNotesTab } from '@/pages/patients/tabs/voice-notes-tab'
+import { PrescriptionsTab } from '@/pages/patients/tabs/prescriptions-tab'
 import { ImagesTab } from '@/pages/patients/tabs/images-tab'
 import { InvoicesTab } from '@/pages/patients/tabs/invoices-tab'
 import { CommunicationLogTab } from '@/pages/patients/tabs/communication-log-tab'
-import { useAppState } from '@/state/app-state'
+import { AiSummaryTab } from '@/pages/patients/tabs/ai-summary-tab'
 import { useClinicStore } from '@/state/store'
 import { formatCurrency } from '@/lib/utils'
 
 export function PatientProfilePage() {
   const { id } = useParams<{ id: string }>()
-  const { role } = useAppState()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const {
@@ -36,8 +40,6 @@ export function PatientProfilePage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [bookOpen, setBookOpen] = useState(false)
-
-  if (role === 'patient') return <Navigate to="/" replace />
 
   const patient = patients.find((p) => p.id === id)
   if (!patient) {
@@ -108,30 +110,54 @@ export function PatientProfilePage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="chart">Chart &amp; History</TabsTrigger>
-          <TabsTrigger value="plan">Treatment Plan</TabsTrigger>
+          <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="medical">Medical &amp; Dental History</TabsTrigger>
+          <TabsTrigger value="plan">Treatment Plans</TabsTrigger>
+          <TabsTrigger value="chart">Clinical Notes</TabsTrigger>
+          <TabsTrigger value="voice">Voice Notes</TabsTrigger>
+          <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="log">Communication Log</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="log">Communication History</TabsTrigger>
+          <TabsTrigger value="ai-summary">AI Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <OverviewTab patient={patient} appointments={myAppointments} />
         </TabsContent>
-        <TabsContent value="chart">
-          <ChartHistoryTab entries={myChart} prescriptions={myPrescriptions} />
+        <TabsContent value="appointments">
+          <AppointmentsTab patient={patient} appointments={myAppointments} />
+        </TabsContent>
+        <TabsContent value="timeline">
+          <PatientTimelineTab patient={patient} />
+        </TabsContent>
+        <TabsContent value="medical">
+          <MedicalHistoryTab patient={patient} />
         </TabsContent>
         <TabsContent value="plan">
           <TreatmentPlanTab patientId={patient.id} plans={myPlans} />
         </TabsContent>
+        <TabsContent value="chart">
+          <ChartHistoryTab entries={myChart} prescriptions={myPrescriptions} />
+        </TabsContent>
+        <TabsContent value="voice">
+          <VoiceNotesTab entries={myChart} />
+        </TabsContent>
+        <TabsContent value="prescriptions">
+          <PrescriptionsTab patientId={patient.id} prescriptions={myPrescriptions} latestDiagnosis={myChart[0]?.diagnosis ?? ''} />
+        </TabsContent>
         <TabsContent value="images">
           <ImagesTab patientId={patient.id} images={myImages} />
         </TabsContent>
-        <TabsContent value="invoices">
+        <TabsContent value="payments">
           <InvoicesTab invoices={myInvoices} />
         </TabsContent>
         <TabsContent value="log">
           <CommunicationLogTab patientId={patient.id} conversation={conversation} />
+        </TabsContent>
+        <TabsContent value="ai-summary">
+          <AiSummaryTab patient={patient} appointments={myAppointments} plans={myPlans} invoices={myInvoices} />
         </TabsContent>
       </Tabs>
 

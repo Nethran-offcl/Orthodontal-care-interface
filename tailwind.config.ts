@@ -62,7 +62,7 @@ export default {
         role: {
           doctor: 'hsl(var(--role-doctor))',
           reception: 'hsl(var(--role-reception))',
-          patient: 'hsl(var(--role-patient))',
+          admin: 'hsl(var(--role-admin))',
           system: 'hsl(var(--role-system))',
         },
         whatsapp: 'hsl(var(--whatsapp))',

@@ -1,12 +1,12 @@
-import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { DoctorDashboard } from '@/pages/dashboard/doctor-dashboard'
-import { FrontDeskDashboard } from '@/pages/dashboard/front-desk-dashboard'
-import { PatientDashboard } from '@/pages/dashboard/patient-dashboard'
+import { ReceptionistDashboard } from '@/pages/dashboard/receptionist-dashboard'
+import { AdminDashboard } from '@/pages/dashboard/admin-dashboard'
 
 export function DashboardPage() {
-  const { role } = useAppState()
+  const { role } = useAuth()
 
   if (role === 'doctor') return <DoctorDashboard />
-  if (role === 'patient') return <PatientDashboard />
-  return <FrontDeskDashboard />
+  if (role === 'admin') return <AdminDashboard />
+  return <ReceptionistDashboard />
 }

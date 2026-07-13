@@ -6,11 +6,12 @@ import { AppointmentRow, AppointmentRowButton } from '@/components/shared/appoin
 import { EmptyState } from '@/components/shared/empty-state'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AiRecommendedActions } from '@/components/shared/ai-recommended-actions'
 import { useClinicStore } from '@/state/store'
 import { getDoctor, getTodaysAppointments } from '@/data'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 
-export function FrontDeskDashboard() {
+export function ReceptionistDashboard() {
   const { appointments, patients, invoices, reminders } = useClinicStore()
   const navigate = useNavigate()
 
@@ -34,7 +35,7 @@ export function FrontDeskDashboard() {
   return (
     <div>
       <PageHeader
-        title="Front desk"
+        title="Receptionist"
         description={formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}
         actions={
           <div className="flex gap-2">
@@ -108,6 +109,9 @@ export function FrontDeskDashboard() {
           </CardContent>
         </Card>
 
+        <div className="space-y-5">
+          <AiRecommendedActions />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -148,6 +152,7 @@ export function FrontDeskDashboard() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   )

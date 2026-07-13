@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { ClipboardList, ClipboardPlus, IndianRupee, Plus } from 'lucide-react'
+import { ClipboardList, ClipboardPlus, IndianRupee, Plus, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -10,18 +10,23 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { NewTreatmentPlanDialog } from '@/pages/patients/new-treatment-plan-dialog'
 import { AddStageDialog } from '@/pages/patients/add-stage-dialog'
 import { useClinicStore } from '@/state/store'
-import { useAppState } from '@/state/app-state'
+import { generateTreatmentSummary } from '@/lib/ai-mock'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { TreatmentPlan } from '@/data/types'
 
 export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plans: TreatmentPlan[] }) {
-  const { role } = useAppState()
-  const { updateStageStatus } = useClinicStore()
+  const { updateStageStatus, patients } = useClinicStore()
   const [newPlanOpen, setNewPlanOpen] = useState(false)
   const [addStagePlanId, setAddStagePlanId] = useState<string | null>(null)
-  const canEdit = role !== 'patient'
+  const [summaries, setSummaries] = useState<Record<string, string>>({})
 
+  const patient = patients.find((p) => p.id === patientId)
   const sorted = [...plans].sort((a) => (a.status === 'active' ? -1 : 1))
+
+  function handleSummarize(plan: TreatmentPlan) {
+    if (!patient) return
+    setSummaries((s) => ({ ...s, [plan.id]: generateTreatmentSummary(plan, patient) }))
+  }
 
   return (
     <div>
@@ -29,12 +34,10 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
         <p className="text-sm text-muted-foreground">
           Drives follow-up reminders automatically — no manual tracking needed.
         </p>
-        {canEdit && (
-          <Button size="sm" onClick={() => setNewPlanOpen(true)}>
-            <ClipboardPlus className="h-4 w-4" />
-            New treatment plan
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setNewPlanOpen(true)}>
+          <ClipboardPlus className="h-4 w-4" />
+          New treatment plan
+        </Button>
       </div>
 
       {sorted.length === 0 ? (
@@ -71,6 +74,17 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Progress value={pct} />
+                  <div className="flex items-center justify-between gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleSummarize(plan)}>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      AI summary
+                    </Button>
+                  </div>
+                  {summaries[plan.id] && (
+                    <p className="rounded-lg border border-primary/20 bg-accent/40 p-3 text-sm leading-relaxed text-foreground">
+                      {summaries[plan.id]}
+                    </p>
+                  )}
                   <div className="space-y-2">
                     {plan.stages.map((stage) => (
                       <div
@@ -86,7 +100,7 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <StageStatusBadge status={stage.status} />
-                          {canEdit && stage.status !== 'completed' && (
+                          {stage.status !== 'completed' && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -103,12 +117,10 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
                       </div>
                     ))}
                   </div>
-                  {canEdit && (
-                    <Button variant="ghost" size="sm" onClick={() => setAddStagePlanId(plan.id)}>
-                      <Plus className="h-3.5 w-3.5" />
-                      Add stage
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="sm" onClick={() => setAddStagePlanId(plan.id)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add stage
+                  </Button>
                 </CardContent>
               </Card>
             )

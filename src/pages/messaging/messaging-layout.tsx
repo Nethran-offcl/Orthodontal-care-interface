@@ -1,32 +1,27 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/page-header'
-import { useAppState } from '@/state/app-state'
 import { useClinicStore } from '@/state/store'
 import { cn } from '@/lib/utils'
 
 export function MessagingLayout() {
-  const { role } = useAppState()
-  const { conversations, reminders, broadcasts } = useClinicStore()
-
-  if (role === 'patient') {
-    // Patients see a simplified single-thread view, not the full ops console.
-    return <Outlet />
-  }
+  const { conversations, reminders, broadcasts, escalations } = useClinicStore()
 
   const unreadMessages = conversations.reduce((s, c) => s + c.unread, 0)
   const needsCall = reminders.filter((r) => r.status === 'no-response' || r.status === 'rescheduled').length
   const pendingBroadcasts = broadcasts.filter((b) => b.status === 'pending-approval').length
+  const openEscalations = escalations.filter((e) => e.status !== 'resolved').length
 
   const tabs = [
     { to: '/messaging', label: 'Inbox', end: true, badge: unreadMessages },
     { to: '/messaging/reminders', label: 'Reminders', badge: needsCall },
     { to: '/messaging/broadcasts', label: 'Broadcasts', badge: pendingBroadcasts },
+    { to: '/messaging/escalations', label: 'Escalations', badge: openEscalations },
     { to: '/messaging/templates', label: 'Templates' },
   ]
 
   return (
     <div>
-      <PageHeader title="Messaging" description="The WhatsApp layer — reminders, replies, and broadcasts in one place." />
+      <PageHeader title="Communication Center" description="Every channel, every escalation, in one place." />
 
       <div className="mb-5 flex gap-1 border-b border-border">
         {tabs.map((tab) => (

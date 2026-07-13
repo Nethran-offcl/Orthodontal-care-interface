@@ -15,13 +15,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { BroadcastComposerDialog } from '@/pages/messaging/broadcast-composer-dialog'
-import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
 import type { Broadcast } from '@/data/types'
 
 export function BroadcastsPage() {
-  const { role } = useAppState()
+  const { role } = useAuth()
   const { broadcasts, approveBroadcast, rejectBroadcast, sendBroadcastNow } = useClinicStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [composerOpen, setComposerOpen] = useState(false)

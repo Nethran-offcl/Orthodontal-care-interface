@@ -14,8 +14,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { daysFromToday } from '@/data/dates'
 import { useClinicStore } from '@/state/store'
+import type { ImageCategory } from '@/data/types'
+
+const categoryOptions: { value: ImageCategory; label: string }[] = [
+  { value: 'clinical', label: 'Clinical Photo' },
+  { value: 'before-after', label: 'Before / After' },
+  { value: 'xray', label: 'X-Ray' },
+  { value: 'scan', label: 'Scan' },
+  { value: 'report', label: 'Report' },
+]
 
 export function UploadImageDialog({
   patientId,
@@ -29,12 +39,14 @@ export function UploadImageDialog({
   const { addImage } = useClinicStore()
   const [toothArea, setToothArea] = useState('')
   const [note, setNote] = useState('')
+  const [category, setCategory] = useState<ImageCategory>('clinical')
   const [marketingConsent, setMarketingConsent] = useState(false)
   const [captured, setCaptured] = useState(false)
 
   function reset() {
     setToothArea('')
     setNote('')
+    setCategory('clinical')
     setMarketingConsent(false)
     setCaptured(false)
   }
@@ -52,6 +64,8 @@ export function UploadImageDialog({
       date: daysFromToday(0),
       marketingConsent,
       hue: Math.floor(Math.random() * 360),
+      category,
+      annotations: [],
     })
     toast.success('Photo added to patient record')
     onOpenChange(false)
@@ -88,6 +102,21 @@ export function UploadImageDialog({
           <div className="space-y-1.5">
             <Label htmlFor="img-area">Tooth / area</Label>
             <Input id="img-area" value={toothArea} onChange={(e) => setToothArea(e.target.value)} placeholder="e.g. 36 (Lower Left Molar)" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Category</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as ImageCategory)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="img-note">Note</Label>

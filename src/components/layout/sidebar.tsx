@@ -1,18 +1,36 @@
-import { NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   CalendarDays,
   Users,
-  MessageSquare,
+  Users2,
+  UserPlus,
+  MessageCircle,
+  Camera,
+  ThumbsUp,
+  CalendarPlus,
+  PhoneCall,
   Receipt,
   BarChart3,
   Settings,
   ChevronsLeft,
   ChevronsRight,
   Stethoscope,
+  Mic,
+  Sparkles,
+  Pill,
+  ClipboardList,
+  History,
+  ImagePlus,
+  UsersRound,
+  ShieldCheck,
+  FileText,
+  LineChart,
+  Bot,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppState } from '@/state/app-state'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -25,30 +43,56 @@ interface NavItem {
 }
 
 export function Sidebar() {
-  const { role, sidebarCollapsed, setSidebarCollapsed } = useAppState()
+  const { sidebarCollapsed, setSidebarCollapsed } = useAppState()
+  const { role } = useAuth()
   const { conversations, broadcasts } = useClinicStore()
 
   const unreadMessages = conversations.reduce((sum, c) => sum + c.unread, 0)
   const pendingBroadcasts = broadcasts.filter((b) => b.status === 'pending-approval').length
   const messagingBadge = unreadMessages + pendingBroadcasts
 
-  const staffNav: NavItem[] = [
+  const doctorNav: NavItem[] = [
     { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
-    { label: 'Appointments', to: '/appointments', icon: CalendarDays },
-    { label: 'Patients', to: '/patients', icon: Users },
-    { label: 'Messaging', to: '/messaging', icon: MessageSquare, badge: messagingBadge || undefined },
-    { label: 'Billing', to: '/billing', icon: Receipt },
+    { label: "Today's Patients", to: '/today', icon: Users2 },
+    { label: 'Calendar', to: '/appointments', icon: CalendarDays },
+    { label: 'Voice Notes', to: '/voice-notes', icon: Mic },
+    { label: 'AI Charting', to: '/ai-charting', icon: Sparkles },
+    { label: 'Prescriptions', to: '/prescriptions', icon: Pill },
+    { label: 'Treatment Plans', to: '/treatment-plans', icon: ClipboardList },
+    { label: 'Patient Timeline', to: '/timeline', icon: History },
+    { label: 'Image Upload', to: '/image-upload', icon: ImagePlus },
     { label: 'Reports', to: '/reports', icon: BarChart3 },
   ]
 
-  const patientNav: NavItem[] = [
+  const receptionistNav: NavItem[] = [
     { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
-    { label: 'My Appointments', to: '/appointments', icon: CalendarDays },
-    { label: 'Messages', to: '/messaging', icon: MessageSquare },
-    { label: 'My Bills', to: '/billing', icon: Receipt },
+    { label: 'Appointments', to: '/appointments', icon: CalendarDays },
+    { label: 'Patient Registration', to: '/patients', icon: UserPlus },
+    { label: 'AI Receptionist', to: '/ai-receptionist', icon: Bot },
+    { label: 'WhatsApp', to: '/messaging?channel=whatsapp', icon: MessageCircle, badge: messagingBadge || undefined },
+    { label: 'Instagram', to: '/messaging?channel=instagram', icon: Camera },
+    { label: 'Facebook', to: '/messaging?channel=facebook', icon: ThumbsUp },
+    { label: 'Booking', to: '/booking', icon: CalendarPlus },
+    { label: 'Follow-ups', to: '/messaging/reminders', icon: PhoneCall },
+    { label: 'Billing Overview', to: '/billing', icon: Receipt },
   ]
 
-  const nav = role === 'patient' ? patientNav : staffNav
+  const adminNav: NavItem[] = [
+    { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
+    { label: 'Manage Doctors', to: '/admin/doctors', icon: Stethoscope },
+    { label: 'Receptionists', to: '/admin/receptionists', icon: UsersRound },
+    { label: 'Users', to: '/admin/users', icon: Users },
+    { label: 'Roles', to: '/admin/roles', icon: ShieldCheck },
+    { label: 'Templates', to: '/messaging/templates', icon: FileText },
+    { label: 'Reports', to: '/reports', icon: BarChart3 },
+    { label: 'Analytics', to: '/admin/analytics', icon: LineChart },
+    { label: 'Audit Logs', to: '/admin/audit-logs', icon: History },
+    { label: 'AI Settings', to: '/admin/ai-settings', icon: Sparkles },
+    { label: 'Clinic Settings', to: '/settings', icon: Settings },
+  ]
+
+  const nav = role === 'doctor' ? doctorNav : role === 'admin' ? adminNav : receptionistNav
+  const showBottomSettings = role !== 'admin'
 
   return (
     <aside
@@ -75,7 +119,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {role !== 'patient' && (
+      {showBottomSettings && (
         <div className="px-2.5 pb-2">
           <SidebarLink
             item={{ label: 'Settings', to: '/settings', icon: Settings }}
@@ -98,19 +142,24 @@ export function Sidebar() {
 }
 
 function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const location = useLocation()
+  const [itemPath, itemSearch = ''] = item.to.split('?')
+  const isActive = item.end
+    ? location.pathname === itemPath
+    : itemSearch
+      ? location.pathname === itemPath && location.search === `?${itemSearch}`
+      : location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`)
+
   const link = (
-    <NavLink
+    <Link
       to={item.to}
-      end={item.end}
-      className={({ isActive }) =>
-        cn(
-          'group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
-          collapsed && 'justify-center px-0',
-          isActive
-            ? 'bg-sidebar-accent text-foreground'
-            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-foreground',
-        )
-      }
+      className={cn(
+        'group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+        collapsed && 'justify-center px-0',
+        isActive
+          ? 'bg-sidebar-accent text-foreground'
+          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-foreground',
+      )}
     >
       <item.icon className="h-4 w-4 shrink-0" />
       {!collapsed && <span className="truncate">{item.label}</span>}
@@ -119,7 +168,7 @@ function SidebarLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
           {item.badge}
         </span>
       ) : null}
-    </NavLink>
+    </Link>
   )
 
   if (!collapsed) return link

@@ -7,13 +7,15 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useAppState } from '@/state/app-state'
+import { AiRecommendedActions } from '@/components/shared/ai-recommended-actions'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { getDoctor, getTodaysAppointments } from '@/data'
 import { formatDate } from '@/lib/utils'
 
 export function DoctorDashboard() {
-  const { currentDoctorId } = useAppState()
+  const { userId } = useAuth()
+  const currentDoctorId = userId ?? ''
   const { appointments, patients, broadcasts, treatmentPlans } = useClinicStore()
   const navigate = useNavigate()
   const doctor = getDoctor(currentDoctorId)
@@ -109,6 +111,8 @@ export function DoctorDashboard() {
         </Card>
 
         <div className="space-y-5">
+          <AiRecommendedActions />
+
           <Card>
             <CardHeader>
               <CardTitle>Recently registered</CardTitle>

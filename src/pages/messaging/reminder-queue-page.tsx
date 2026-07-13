@@ -1,34 +1,54 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AlertTriangle, CalendarClock, ClipboardList, PhoneCall, Send } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ClipboardList, PhoneCall, Send, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ReminderStatusBadge } from '@/components/shared/status-badge'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { EmptyState } from '@/components/shared/empty-state'
 import { useClinicStore } from '@/state/store'
+import { generateReminderMessage } from '@/lib/ai-mock'
 import { getDoctor, getTreatmentPlan } from '@/data'
 import { formatDate } from '@/lib/utils'
 
 export function ReminderQueuePage() {
   const { reminders, patients, appointments, sendMessage, updateReminderStatus } = useClinicStore()
   const navigate = useNavigate()
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
 
   const sorted = [...reminders].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const needingCall = sorted.filter((r) => r.status === 'no-response' || r.status === 'rescheduled')
   const rest = sorted.filter((r) => r.status !== 'no-response' && r.status !== 'rescheduled')
 
-  function sendReminderNow(id: string, patientId: string, appointmentId: string) {
+  function defaultMessage(patientId: string, appointmentId: string) {
     const patient = patients.find((p) => p.id === patientId)
     const appt = appointments.find((a) => a.id === appointmentId)
     const doctor = appt ? getDoctor(appt.doctorId) : undefined
-    if (!patient || !appt) return
-    sendMessage(
-      patientId,
-      `Hi ${patient.name.split(' ')[0]}, this is a reminder from Sunrise Dental that your follow-up visit with ${doctor?.name} is scheduled for ${formatDate(appt.date, { day: 'numeric', month: 'short' })} at ${appt.startTime}. Please reply YES to confirm or call us to reschedule.`,
-    )
+    if (!patient || !appt || !doctor) return ''
+    return `Hi ${patient.name.split(' ')[0]}, this is a reminder from Sunrise Dental that your follow-up visit with ${doctor.name} is scheduled for ${formatDate(appt.date, { day: 'numeric', month: 'short' })} at ${appt.startTime}. Please reply YES to confirm or call us to reschedule.`
+  }
+
+  function generateWording(id: string, patientId: string, appointmentId: string) {
+    const patient = patients.find((p) => p.id === patientId)
+    const appt = appointments.find((a) => a.id === appointmentId)
+    const doctor = appt ? getDoctor(appt.doctorId) : undefined
+    if (!patient || !appt || !doctor) return
+    setDrafts((d) => ({ ...d, [id]: generateReminderMessage(patient.name, doctor.name, appt.date, appt.startTime) }))
+  }
+
+  function sendReminderNow(id: string, patientId: string, appointmentId: string) {
+    const text = drafts[id] || defaultMessage(patientId, appointmentId)
+    if (!text) return
+    sendMessage(patientId, text)
     updateReminderStatus(id, 'sent')
     toast.success('Reminder sent via WhatsApp')
+    setDrafts((d) => {
+      const next = { ...d }
+      delete next[id]
+      return next
+    })
   }
 
   return (
@@ -122,10 +142,32 @@ export function ReminderQueuePage() {
                   <div className="flex items-center gap-2">
                     <ReminderStatusBadge status={r.status} />
                     {r.status === 'scheduled' && appt && (
-                      <Button size="sm" variant="outline" onClick={() => sendReminderNow(r.id, r.patientId, r.appointmentId)}>
-                        <Send className="h-3.5 w-3.5" />
-                        Send now
-                      </Button>
+                      <>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => generateWording(r.id, r.patientId, r.appointmentId)}
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              AI wording
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                              <Sparkles className="h-3 w-3" /> Suggested message
+                            </p>
+                            <p className="text-xs leading-relaxed text-foreground">
+                              {drafts[r.id] ?? 'Click again to regenerate.'}
+                            </p>
+                          </PopoverContent>
+                        </Popover>
+                        <Button size="sm" variant="outline" onClick={() => sendReminderNow(r.id, r.patientId, r.appointmentId)}>
+                          <Send className="h-3.5 w-3.5" />
+                          Send now
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

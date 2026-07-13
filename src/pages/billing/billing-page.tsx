@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IndianRupee, Receipt, TrendingUp, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
@@ -11,26 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RecordPaymentDialog } from '@/pages/patients/record-payment-dialog'
-import { useAppState } from '@/state/app-state'
 import { useClinicStore } from '@/state/store'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Invoice } from '@/data/types'
 
 export function BillingPage() {
-  const { role, currentPatientId } = useAppState()
   const { invoices, patients } = useClinicStore()
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null)
 
-  const scoped = useMemo(
-    () => (role === 'patient' ? invoices.filter((i) => i.patientId === currentPatientId) : invoices),
-    [invoices, role, currentPatientId],
-  )
-
-  const totalBilled = scoped.reduce((s, i) => s + i.total, 0)
-  const totalPaid = scoped.reduce((s, i) => s + i.paid, 0)
+  const totalBilled = invoices.reduce((s, i) => s + i.total, 0)
+  const totalPaid = invoices.reduce((s, i) => s + i.paid, 0)
   const totalDue = totalBilled - totalPaid
-  const outstanding = scoped.filter((i) => i.status !== 'paid').sort((a, b) => b.date.localeCompare(a.date))
-  const all = [...scoped].sort((a, b) => b.date.localeCompare(a.date))
+  const outstanding = invoices.filter((i) => i.status !== 'paid').sort((a, b) => b.date.localeCompare(a.date))
+  const all = [...invoices].sort((a, b) => b.date.localeCompare(a.date))
 
   function renderInvoice(inv: Invoice) {
     const patient = patients.find((p) => p.id === inv.patientId)
@@ -40,10 +33,8 @@ export function BillingPage() {
         key={inv.id}
         header={
           <div className="flex flex-wrap items-center gap-2">
-            {role !== 'patient' && patient && <PatientAvatar id={patient.id} name={patient.name} size="sm" />}
-            <span className="text-sm font-semibold">
-              {role !== 'patient' && patient ? patient.name : inv.id}
-            </span>
+            {patient && <PatientAvatar id={patient.id} name={patient.name} size="sm" />}
+            <span className="text-sm font-semibold">{patient ? patient.name : inv.id}</span>
             <InvoiceStatusBadge status={inv.status} />
             <span className="ml-auto text-sm font-semibold tabular">{formatCurrency(inv.total)}</span>
           </div>
@@ -52,7 +43,7 @@ export function BillingPage() {
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             {inv.id} · {formatDate(inv.date)}
-            {role !== 'patient' && patient && (
+            {patient && (
               <>
                 {' · '}
                 <Link to={`/patients/${patient.id}`} className="hover:underline">
@@ -77,11 +68,9 @@ export function BillingPage() {
           {due > 0 && (
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-warning">{formatCurrency(due)} due</span>
-              {role !== 'patient' && (
-                <Button size="sm" onClick={() => setPayingInvoice(inv)}>
-                  Record payment
-                </Button>
-              )}
+              <Button size="sm" onClick={() => setPayingInvoice(inv)}>
+                Record payment
+              </Button>
             </div>
           )}
         </div>
@@ -91,10 +80,7 @@ export function BillingPage() {
 
   return (
     <div>
-      <PageHeader
-        title={role === 'patient' ? 'My bills' : 'Billing'}
-        description={role === 'patient' ? 'Every invoice from your visits.' : 'Invoices, payments, and outstanding balances.'}
-      />
+      <PageHeader title="Billing" description="Invoices, payments, and outstanding balances." />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatTile label="Total billed" value={formatCurrency(totalBilled)} icon={<Receipt className="h-4 w-4" />} />

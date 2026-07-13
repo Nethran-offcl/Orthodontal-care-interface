@@ -10,6 +10,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-21),
     marketingConsent: false,
     hue: 12,
+    category: 'xray',
+    annotations: [],
   },
   {
     id: 'IMG-7002',
@@ -19,6 +21,10 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(0),
     marketingConsent: false,
     hue: 18,
+    category: 'xray',
+    annotations: [
+      { id: 'AN-1', xPct: 52, yPct: 40, note: 'Canal 1 — working length confirmed' },
+    ],
   },
   {
     id: 'IMG-7003',
@@ -28,6 +34,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-45),
     marketingConsent: false,
     hue: 205,
+    category: 'scan',
+    annotations: [],
   },
   {
     id: 'IMG-7004',
@@ -37,6 +45,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(0),
     marketingConsent: false,
     hue: 210,
+    category: 'xray',
+    annotations: [],
   },
   {
     id: 'IMG-7005',
@@ -46,6 +56,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-140),
     marketingConsent: true,
     hue: 280,
+    category: 'before-after',
+    annotations: [],
   },
   {
     id: 'IMG-7006',
@@ -55,6 +67,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-1),
     marketingConsent: true,
     hue: 285,
+    category: 'before-after',
+    annotations: [],
   },
   {
     id: 'IMG-7007',
@@ -64,6 +78,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-70),
     marketingConsent: true,
     hue: 40,
+    category: 'before-after',
+    annotations: [],
   },
   {
     id: 'IMG-7008',
@@ -73,6 +89,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-68),
     marketingConsent: true,
     hue: 45,
+    category: 'before-after',
+    annotations: [],
   },
   {
     id: 'IMG-7009',
@@ -82,6 +100,8 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-2),
     marketingConsent: false,
     hue: 350,
+    category: 'clinical',
+    annotations: [],
   },
   {
     id: 'IMG-7010',
@@ -91,6 +111,19 @@ export const patientImages: PatientImage[] = [
     date: daysFromToday(-1),
     marketingConsent: false,
     hue: 5,
+    category: 'clinical',
+    annotations: [],
+  },
+  {
+    id: 'IMG-7011',
+    patientId: 'PT-1001',
+    toothArea: 'Full mouth',
+    note: 'Annual periodontal screening report',
+    date: daysFromToday(-90),
+    marketingConsent: false,
+    hue: 150,
+    category: 'report',
+    annotations: [],
   },
 ]
 

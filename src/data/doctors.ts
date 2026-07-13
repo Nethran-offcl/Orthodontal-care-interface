@@ -23,14 +23,6 @@ export const doctors: Doctor[] = [
   },
 ]
 
-export const frontDeskStaff = {
-  id: 'staff-priya',
-  name: 'Priya Kulkarni',
-  title: 'Front Desk & Clinic Admin',
-  phone: '+91 98451 90045',
-  email: 'priya.k@sunrisedental.clinic',
-}
-
 export function getDoctor(id: string) {
   return doctors.find((d) => d.id === id)
 }

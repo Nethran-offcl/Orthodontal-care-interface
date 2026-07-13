@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { CommandPalette } from '@/components/layout/command-palette'
 import { NotificationsPanel } from '@/components/layout/notifications-panel'
+import { KnowledgeAssistantDialog } from '@/components/shared/knowledge-assistant-dialog'
 
 export function AppShell() {
   const location = useLocation()
@@ -30,6 +31,7 @@ export function AppShell() {
       </div>
       <CommandPalette />
       <NotificationsPanel />
+      <KnowledgeAssistantDialog />
     </div>
   )
 }

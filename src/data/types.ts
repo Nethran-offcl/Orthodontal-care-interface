@@ -1,4 +1,4 @@
-export type Role = 'doctor' | 'frontdesk' | 'patient'
+export type Role = 'doctor' | 'receptionist' | 'admin'
 
 export interface Doctor {
   id: string
@@ -9,6 +9,16 @@ export interface Doctor {
   phone: string
   email: string
   color: string
+}
+
+export interface StaffMember {
+  id: string
+  name: string
+  title: string
+  phone: string
+  email: string
+  role: 'receptionist' | 'admin'
+  status: 'active' | 'invited'
 }
 
 export type LeadSource = 'Walk-in' | 'Referral' | 'Instagram' | 'Facebook' | 'Google'
@@ -28,6 +38,9 @@ export interface Patient {
   balanceDue: number
   totalBilled: number
   primaryDoctorId: string
+  medicalConditions?: string[]
+  currentMedications?: string[]
+  dentalHistoryNotes?: string
 }
 
 export type AppointmentStatus =
@@ -103,6 +116,15 @@ export interface Prescription {
   notes: string
 }
 
+export type ImageCategory = 'before-after' | 'clinical' | 'report' | 'scan' | 'xray'
+
+export interface ImageAnnotation {
+  id: string
+  xPct: number
+  yPct: number
+  note: string
+}
+
 export interface PatientImage {
   id: string
   patientId: string
@@ -111,6 +133,8 @@ export interface PatientImage {
   date: string
   marketingConsent: boolean
   hue: number
+  category: ImageCategory
+  annotations: ImageAnnotation[]
 }
 
 export interface InvoiceItem {
@@ -140,6 +164,25 @@ export interface ChatMessage {
   status?: 'sent' | 'delivered' | 'read' | 'failed'
 }
 
+export type ConversationChannel = 'whatsapp' | 'instagram' | 'facebook' | 'email'
+export type ConversationStatus = 'open' | 'pending' | 'waiting' | 'resolved'
+export type ConversationPriority = 'low' | 'medium' | 'high'
+
+export interface InternalNote {
+  id: string
+  author: string
+  text: string
+  time: string
+}
+
+export interface Attachment {
+  id: string
+  name: string
+  kind: 'image' | 'document' | 'audio'
+  sizeKb: number
+  time: string
+}
+
 export interface Conversation {
   id: string
   patientId: string
@@ -147,6 +190,12 @@ export interface Conversation {
   lastMessageAt: string
   unread: number
   slaMinutes: number
+  channel: ConversationChannel
+  status: ConversationStatus
+  assigneeId?: string
+  priority?: ConversationPriority
+  internalNotes: InternalNote[]
+  attachments: Attachment[]
 }
 
 export type ReminderStatus = 'scheduled' | 'sent' | 'confirmed' | 'no-response' | 'rescheduled'
@@ -197,6 +246,38 @@ export interface MessageTemplate {
   usedCount: number
 }
 
+export type EscalationPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type EscalationStatus = 'open' | 'in-progress' | 'resolved'
+
+export interface EscalationComment {
+  id: string
+  author: string
+  text: string
+  time: string
+}
+
+export interface EscalationHistoryEntry {
+  id: string
+  action: string
+  actor: string
+  time: string
+}
+
+export interface Escalation {
+  id: string
+  conversationId?: string
+  patientId: string
+  reason: string
+  priority: EscalationPriority
+  assignedRole: Role
+  assignedToId?: string
+  status: EscalationStatus
+  createdAt: string
+  createdBy: string
+  comments: EscalationComment[]
+  history: EscalationHistoryEntry[]
+}
+
 export interface AuditLogEntry {
   id: string
   actor: string
@@ -205,7 +286,16 @@ export interface AuditLogEntry {
   time: string
 }
 
-export type NotificationType = 'reminder' | 'payment' | 'message' | 'system' | 'broadcast'
+export type NotificationType =
+  | 'reminder'
+  | 'payment'
+  | 'message'
+  | 'system'
+  | 'broadcast'
+  | 'escalation'
+  | 'assignment'
+  | 'image'
+  | 'ai-review'
 
 export interface AppNotification {
   id: string
