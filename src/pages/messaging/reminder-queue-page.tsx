@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AlertTriangle, CalendarClock, ClipboardList, PhoneCall, Send, Sparkles } from 'lucide-react'
@@ -9,33 +9,55 @@ import { ReminderStatusBadge } from '@/components/shared/status-badge'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { EmptyState } from '@/components/shared/empty-state'
 import { useClinicStore } from '@/state/store'
-import { generateReminderMessage } from '@/lib/ai-mock'
-import { getDoctor, getTreatmentPlan } from '@/data'
+import { aiService, treatmentPlansService } from '@/services'
 import { formatDate } from '@/lib/utils'
+import type { TreatmentPlan } from '@/types'
 
 export function ReminderQueuePage() {
-  const { reminders, patients, appointments, sendMessage, updateReminderStatus } = useClinicStore()
+  const { reminders, patients, appointments, doctors, sendMessage, updateReminderStatus } = useClinicStore()
   const navigate = useNavigate()
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [plansById, setPlansById] = useState<Record<string, TreatmentPlan>>({})
 
   const sorted = [...reminders].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const needingCall = sorted.filter((r) => r.status === 'no-response' || r.status === 'rescheduled')
   const rest = sorted.filter((r) => r.status !== 'no-response' && r.status !== 'rescheduled')
 
+  useEffect(() => {
+    let alive = true
+    const ids = [...new Set(reminders.map((r) => r.treatmentPlanId).filter((id): id is string => !!id))]
+    Promise.all(ids.map((id) => treatmentPlansService.getById(id))).then((plans) => {
+      if (!alive) return
+      const next: Record<string, TreatmentPlan> = {}
+      plans.forEach((p) => {
+        if (p) next[p.id] = p
+      })
+      setPlansById(next)
+    })
+    return () => {
+      alive = false
+    }
+  }, [reminders])
+
+  function getTreatmentPlan(id: string) {
+    return plansById[id]
+  }
+
   function defaultMessage(patientId: string, appointmentId: string) {
     const patient = patients.find((p) => p.id === patientId)
     const appt = appointments.find((a) => a.id === appointmentId)
-    const doctor = appt ? getDoctor(appt.doctorId) : undefined
+    const doctor = appt ? doctors.find((d) => d.id === appt.doctorId) : undefined
     if (!patient || !appt || !doctor) return ''
     return `Hi ${patient.name.split(' ')[0]}, this is a reminder from Sunrise Dental that your follow-up visit with ${doctor.name} is scheduled for ${formatDate(appt.date, { day: 'numeric', month: 'short' })} at ${appt.startTime}. Please reply YES to confirm or call us to reschedule.`
   }
 
-  function generateWording(id: string, patientId: string, appointmentId: string) {
+  async function generateWording(id: string, patientId: string, appointmentId: string) {
     const patient = patients.find((p) => p.id === patientId)
     const appt = appointments.find((a) => a.id === appointmentId)
-    const doctor = appt ? getDoctor(appt.doctorId) : undefined
+    const doctor = appt ? doctors.find((d) => d.id === appt.doctorId) : undefined
     if (!patient || !appt || !doctor) return
-    setDrafts((d) => ({ ...d, [id]: generateReminderMessage(patient.name, doctor.name, appt.date, appt.startTime) }))
+    const text = await aiService.generateReminderMessage(patient.name, doctor.name, appt.date, appt.startTime)
+    setDrafts((d) => ({ ...d, [id]: text }))
   }
 
   function sendReminderNow(id: string, patientId: string, appointmentId: string) {

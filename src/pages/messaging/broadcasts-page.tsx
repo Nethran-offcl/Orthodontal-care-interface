@@ -18,7 +18,7 @@ import { BroadcastComposerDialog } from '@/pages/messaging/broadcast-composer-di
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
-import type { Broadcast } from '@/data/types'
+import type { Broadcast } from '@/types'
 
 export function BroadcastsPage() {
   const { role } = useAuth()

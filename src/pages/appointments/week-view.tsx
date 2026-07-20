@@ -1,7 +1,7 @@
 import { isToday, isSameDay, format } from 'date-fns'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { cn } from '@/lib/utils'
-import type { Appointment, Patient } from '@/data/types'
+import type { Appointment, Patient } from '@/types'
 
 export function WeekView({
   weekDays,

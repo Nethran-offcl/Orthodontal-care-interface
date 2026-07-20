@@ -5,7 +5,7 @@ import type {
   Invoice,
   PatientImage,
   Prescription,
-} from '@/data/types'
+} from '@/types'
 import { formatCurrency } from '@/lib/utils'
 
 export type TimelineEventType = 'appointment' | 'chart' | 'image' | 'prescription' | 'payment' | 'message'

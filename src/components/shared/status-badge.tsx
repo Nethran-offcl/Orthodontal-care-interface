@@ -8,7 +8,7 @@ import type {
   InvoiceStatus,
   ReminderStatus,
   TreatmentStageStatus,
-} from '@/data/types'
+} from '@/types'
 import { cn } from '@/lib/utils'
 
 const dotClass = 'h-1.5 w-1.5 rounded-full'

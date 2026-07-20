@@ -2,60 +2,38 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import {
-  Stethoscope,
-  UsersRound,
-  ShieldCheck,
-  Moon,
-  Sun,
-  ArrowLeft,
-  Sparkles,
-  CalendarCheck2,
-  MessagesSquare,
-} from 'lucide-react'
+import { Stethoscope, Moon, Sun, ArrowLeft, Sparkles, CalendarCheck2, MessagesSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/state/auth-state'
 import { useTheme } from '@/hooks/use-theme'
-import { doctors } from '@/data'
-import { cn } from '@/lib/utils'
-import type { Role } from '@/data/types'
-
-const roleTiles: { role: Role; label: string; description: string; icon: typeof Stethoscope }[] = [
-  { role: 'doctor', label: 'Doctor', description: 'Charting, consultations, treatment plans', icon: Stethoscope },
-  { role: 'receptionist', label: 'Receptionist', description: 'Front desk, bookings, WhatsApp', icon: UsersRound },
-  { role: 'admin', label: 'Administrator', description: 'Full clinic access & settings', icon: ShieldCheck },
-]
 
 export function LoginPage() {
   const { login } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
-  const [role, setRole] = useState<Role>('doctor')
-  const [doctorId, setDoctorId] = useState(doctors[0]?.id ?? '')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password.trim()) {
       toast.error('Enter an email and password to continue.')
       return
     }
-    const userId = role === 'doctor' ? doctorId : role === 'receptionist' ? 'staff-priya' : 'staff-meera'
-    login(role, userId)
-    toast.success('Welcome back')
-    navigate('/')
-  }
-
-  function quickDemo(r: Role) {
-    const userId = r === 'doctor' ? (doctorId || doctors[0]?.id || '') : r === 'receptionist' ? 'staff-priya' : 'staff-meera'
-    login(r, userId)
-    toast.success(`Signed in as ${roleTiles.find((t) => t.role === r)?.label}`)
-    navigate('/')
+    setSubmitting(true)
+    try {
+      await login(email.trim(), password)
+      toast.success('Welcome back')
+      navigate('/')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign in failed')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -149,49 +127,10 @@ export function LoginPage() {
             </div>
             <div className="space-y-1.5">
               <h2 className="text-xl font-semibold tracking-tight">Sign in</h2>
-              <p className="text-sm text-muted-foreground">Choose your role to continue.</p>
+              <p className="text-sm text-muted-foreground">Enter your clinic credentials to continue.</p>
             </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              {roleTiles.map((t) => (
-                <button
-                  key={t.role}
-                  type="button"
-                  onClick={() => setRole(t.role)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-center transition-colors',
-                    role === t.role
-                      ? 'border-primary bg-accent text-accent-foreground'
-                      : 'border-border hover:bg-secondary/60',
-                  )}
-                >
-                  <t.icon className={cn('h-4.5 w-4.5', role === t.role ? 'text-primary' : 'text-muted-foreground')} />
-                  <span className="text-xs font-medium leading-tight">{t.label}</span>
-                </button>
-              ))}
-            </div>
-            <p className="-mt-3 text-xs text-muted-foreground">
-              {roleTiles.find((t) => t.role === role)?.description}
-            </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {role === 'doctor' && (
-                <div className="space-y-1.5">
-                  <Label>Doctor</Label>
-                  <Select value={doctorId} onValueChange={setDoctorId}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               <div className="space-y-1.5">
                 <Label htmlFor="login-email">Email</Label>
                 <Input
@@ -217,29 +156,10 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Sign in as {roleTiles.find((t) => t.role === role)?.label}
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
-
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Quick demo</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {roleTiles.map((t) => (
-                <Button key={t.role} type="button" variant="outline" size="sm" onClick={() => quickDemo(t.role)}>
-                  <t.icon className="h-3.5 w-3.5" />
-                  {t.label} demo
-                </Button>
-              ))}
-            </div>
-
-            <p className="text-center text-xs text-muted-foreground">
-              This is a prototype — any email and password will work.
-            </p>
           </motion.div>
         </div>
       </div>

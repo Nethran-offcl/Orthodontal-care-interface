@@ -1,17 +1,18 @@
 import { CalendarX2 } from 'lucide-react'
 import { AppointmentRow } from '@/components/shared/appointment-row'
 import { EmptyState } from '@/components/shared/empty-state'
-import { getDoctor } from '@/data'
-import type { Appointment, Patient } from '@/data/types'
+import type { Appointment, Doctor, Patient } from '@/types'
 
 export function DayView({
   appointments,
   patients,
+  doctors,
   showDoctor,
   onSelect,
 }: {
   appointments: Appointment[]
   patients: Patient[]
+  doctors: Doctor[]
   showDoctor: boolean
   onSelect: (id: string) => void
 }) {
@@ -32,7 +33,7 @@ export function DayView({
           <AppointmentRow
             appointment={a}
             patient={patients.find((p) => p.id === a.patientId)}
-            doctor={getDoctor(a.doctorId)}
+            doctor={doctors.find((d) => d.id === a.doctorId)}
             showDoctor={showDoctor}
           />
         </button>

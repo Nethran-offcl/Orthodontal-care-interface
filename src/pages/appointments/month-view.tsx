@@ -1,6 +1,6 @@
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { Appointment } from '@/data/types'
+import type { Appointment } from '@/types'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 

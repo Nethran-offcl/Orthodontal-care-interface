@@ -54,6 +54,7 @@ export function Sidebar() {
   const doctorNav: NavItem[] = [
     { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
     { label: "Today's Patients", to: '/today', icon: Users2 },
+    { label: 'Patients', to: '/patients', icon: Users },
     { label: 'Calendar', to: '/appointments', icon: CalendarDays },
     { label: 'Voice Notes', to: '/voice-notes', icon: Mic },
     { label: 'AI Charting', to: '/ai-charting', icon: Sparkles },

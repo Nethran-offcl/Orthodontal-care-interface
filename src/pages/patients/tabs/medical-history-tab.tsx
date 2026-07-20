@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { EditMedicalHistoryDialog } from '@/pages/patients/edit-medical-history-dialog'
-import type { Patient } from '@/data/types'
+import type { Patient } from '@/types'
 
 export function MedicalHistoryTab({ patient }: { patient: Patient }) {
   const [editOpen, setEditOpen] = useState(false)

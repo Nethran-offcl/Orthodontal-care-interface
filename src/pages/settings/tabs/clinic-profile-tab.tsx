@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Building2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -6,12 +6,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { settingsService } from '@/services'
 
 export function ClinicProfileTab() {
-  const [name, setName] = useState('Sunrise Dental')
-  const [phone, setPhone] = useState('+91 80 4012 3456')
-  const [hours, setHours] = useState('Mon–Sat, 9:00 AM – 7:00 PM')
-  const [address, setAddress] = useState('142 Brigade Road, Bengaluru, Karnataka 560025')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [hours, setHours] = useState('')
+  const [address, setAddress] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    settingsService.getClinicProfile().then((profile) => {
+      if (!alive) return
+      setName(profile.name)
+      setPhone(profile.phone)
+      setHours(profile.hours)
+      setAddress(profile.address)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  async function handleSave() {
+    await settingsService.updateClinicProfile({ name, phone, hours, address })
+    toast.success('Clinic profile updated')
+  }
 
   return (
     <Card>
@@ -43,7 +63,7 @@ export function ClinicProfileTab() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => toast.success('Clinic profile updated')}>Save changes</Button>
+        <Button onClick={handleSave}>Save changes</Button>
       </CardFooter>
     </Card>
   )

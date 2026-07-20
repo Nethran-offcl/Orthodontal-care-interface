@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { useAppState } from '@/state/app-state'
 import { useClinicStore } from '@/state/store'
 import { cn, formatRelativeTime } from '@/lib/utils'
-import type { NotificationType } from '@/data/types'
+import type { NotificationType } from '@/types'
 
 const iconMap: Record<NotificationType, typeof Bell> = {
   reminder: CalendarClock,

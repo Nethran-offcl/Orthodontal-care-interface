@@ -21,10 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { doctors } from '@/data'
 import { useClinicStore } from '@/state/store'
-import { daysFromToday } from '@/data/dates'
-import type { LeadSource } from '@/data/types'
+import { daysFromToday } from '@/lib/date'
+import type { LeadSource } from '@/types'
 
 const durations = [15, 20, 30, 45, 60]
 
@@ -37,7 +36,7 @@ export function NewAppointmentDialog({
   onOpenChange: (open: boolean) => void
   defaultPatientId?: string
 }) {
-  const { patients, addPatient, addAppointment, sendMessage } = useClinicStore()
+  const { patients, doctors, addPatient, addAppointment, sendMessage } = useClinicStore()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState<'existing' | 'new'>(defaultPatientId ? 'existing' : 'existing')
@@ -67,7 +66,7 @@ export function NewAppointmentDialog({
     setIsFollowUp(false)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     let finalPatientId = patientId
@@ -78,7 +77,7 @@ export function NewAppointmentDialog({
         toast.error('Enter name, phone, and age to register the patient.')
         return
       }
-      const created = addPatient({
+      const created = await addPatient({
         name: newName,
         phone: newPhone,
         age: Number(newAge),
@@ -106,7 +105,7 @@ export function NewAppointmentDialog({
       return
     }
 
-    const appt = addAppointment({
+    const appt = await addAppointment({
       patientId: finalPatientId,
       doctorId,
       date,

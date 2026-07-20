@@ -1,17 +1,20 @@
 import { UsersRound } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { StaffManagementCard } from '@/components/shared/staff-management-card'
-import { receptionists } from '@/data'
-
-const seedMembers = receptionists.map((r) => ({
-  id: r.id,
-  name: r.name,
-  title: r.title,
-  email: r.email,
-  role: 'reception' as const,
-}))
+import { useClinicStore } from '@/state/store'
 
 export function AdminReceptionistsPage() {
+  const { staff } = useClinicStore()
+  const seedMembers = staff
+    .filter((s) => s.role === 'receptionist')
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      title: r.title,
+      email: r.email,
+      role: 'reception' as const,
+    }))
+
   return (
     <div>
       <PageHeader title="Receptionists" description="Front desk accounts across the clinic." />

@@ -2,9 +2,9 @@ import { FileText, Mic, PenLine, Pill } from 'lucide-react'
 import { ExpandableCard } from '@/components/shared/expandable-card'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Badge } from '@/components/ui/badge'
-import { getDoctor } from '@/data'
+import { useClinicStore } from '@/state/store'
 import { formatDate } from '@/lib/utils'
-import type { ChartEntry, Prescription } from '@/data/types'
+import type { ChartEntry, Prescription } from '@/types'
 
 export function ChartHistoryTab({
   entries,
@@ -13,6 +13,7 @@ export function ChartHistoryTab({
   entries: ChartEntry[]
   prescriptions: Prescription[]
 }) {
+  const { doctors } = useClinicStore()
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -26,7 +27,7 @@ export function ChartHistoryTab({
   return (
     <div className="space-y-3">
       {entries.map((entry) => {
-        const doctor = getDoctor(entry.doctorId)
+        const doctor = doctors.find((d) => d.id === entry.doctorId)
         const rx = prescriptions.find((p) => p.chartEntryId === entry.id)
         return (
           <ExpandableCard

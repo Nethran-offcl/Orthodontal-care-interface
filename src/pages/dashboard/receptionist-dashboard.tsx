@@ -8,21 +8,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { AiRecommendedActions } from '@/components/shared/ai-recommended-actions'
 import { useClinicStore } from '@/state/store'
-import { getDoctor, getTodaysAppointments } from '@/data'
+import { TODAY_ISO } from '@/lib/date'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 
 export function ReceptionistDashboard() {
-  const { appointments, patients, invoices, reminders } = useClinicStore()
+  const { appointments, patients, doctors, invoices, reminders } = useClinicStore()
   const navigate = useNavigate()
 
-  const todays = getTodaysAppointments().map((a) => {
-    const live = appointments.find((x) => x.id === a.id) ?? a
-    return {
-      ...live,
-      patient: patients.find((p) => p.id === live.patientId),
-      doctor: getDoctor(live.doctorId),
-    }
-  })
+  const todays = appointments
+    .filter((a) => a.date === TODAY_ISO)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .map((a) => ({
+      ...a,
+      patient: patients.find((p) => p.id === a.patientId),
+      doctor: doctors.find((d) => d.id === a.doctorId),
+    }))
 
   const needingCall = reminders
     .filter((r) => r.status === 'no-response' || r.status === 'rescheduled')

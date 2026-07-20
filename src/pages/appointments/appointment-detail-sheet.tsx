@@ -19,7 +19,6 @@ import { Separator } from '@/components/ui/separator'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { AppointmentStatusBadge } from '@/components/shared/status-badge'
 import { useClinicStore } from '@/state/store'
-import { getDoctor } from '@/data'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 export function AppointmentDetailSheet({
@@ -29,7 +28,7 @@ export function AppointmentDetailSheet({
   appointmentId: string | null
   onOpenChange: (open: boolean) => void
 }) {
-  const { appointments, patients, invoices, updateAppointmentStatus, rescheduleAppointment, sendMessage } =
+  const { appointments, patients, doctors, invoices, updateAppointmentStatus, rescheduleAppointment, sendMessage } =
     useClinicStore()
   const navigate = useNavigate()
   const [rescheduling, setRescheduling] = useState(false)
@@ -38,7 +37,7 @@ export function AppointmentDetailSheet({
 
   const appointment = appointments.find((a) => a.id === appointmentId)
   const patient = appointment ? patients.find((p) => p.id === appointment.patientId) : undefined
-  const doctor = appointment ? getDoctor(appointment.doctorId) : undefined
+  const doctor = appointment ? doctors.find((d) => d.id === appointment.doctorId) : undefined
   const outstanding = patient
     ? invoices.filter((i) => i.patientId === patient.id).reduce((s, i) => s + (i.total - i.paid), 0)
     : 0

@@ -15,8 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClinicStore } from '@/state/store'
 import { useAuth } from '@/state/auth-state'
-import { doctors, receptionists, admins } from '@/data'
-import type { EscalationPriority, Role } from '@/data/types'
+import type { Doctor, EscalationPriority, Role, StaffMember } from '@/types'
 
 const roleOptions: { value: Role; label: string }[] = [
   { value: 'doctor', label: 'Doctor' },
@@ -24,20 +23,18 @@ const roleOptions: { value: Role; label: string }[] = [
   { value: 'admin', label: 'Administrator' },
 ]
 
-function assigneesForRole(role: Role) {
+function assigneesForRole(role: Role, doctors: Doctor[], staff: StaffMember[]) {
   if (role === 'doctor') return doctors.map((d) => ({ id: d.id, name: d.name }))
-  if (role === 'receptionist') return receptionists.map((r) => ({ id: r.id, name: r.name }))
-  return admins.map((a) => ({ id: a.id, name: a.name }))
+  return staff.filter((s) => s.role === role).map((s) => ({ id: s.id, name: s.name }))
 }
 
-function currentActorName(role: string | null, userId: string | null) {
+function currentActorName(role: string | null, userId: string | null, doctors: Doctor[], staff: StaffMember[]) {
   if (role === 'doctor') return doctors.find((d) => d.id === userId)?.name ?? 'Staff'
-  const staff = [...receptionists, ...admins].find((s) => s.id === userId)
-  return staff?.name ?? 'Staff'
+  return staff.find((s) => s.id === userId)?.name ?? 'Staff'
 }
 
 export function NewEscalationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { patients, createEscalation } = useClinicStore()
+  const { patients, doctors, staff, createEscalation } = useClinicStore()
   const { role, userId } = useAuth()
 
   const [patientId, setPatientId] = useState(patients[0]?.id ?? '')
@@ -56,7 +53,7 @@ export function NewEscalationDialog({ open, onOpenChange }: { open: boolean; onO
 
   function handleRoleChange(next: Role) {
     setAssignedRole(next)
-    setAssignedToId(assigneesForRole(next)[0]?.id ?? '')
+    setAssignedToId(assigneesForRole(next, doctors, staff)[0]?.id ?? '')
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -71,7 +68,7 @@ export function NewEscalationDialog({ open, onOpenChange }: { open: boolean; onO
       priority,
       assignedRole,
       assignedToId,
-      createdBy: currentActorName(role, userId),
+      createdBy: currentActorName(role, userId, doctors, staff),
     })
     toast.success('Escalation created')
     onOpenChange(false)
@@ -146,7 +143,7 @@ export function NewEscalationDialog({ open, onOpenChange }: { open: boolean; onO
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {assigneesForRole(assignedRole).map((a) => (
+                {assigneesForRole(assignedRole, doctors, staff).map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name}
                   </SelectItem>

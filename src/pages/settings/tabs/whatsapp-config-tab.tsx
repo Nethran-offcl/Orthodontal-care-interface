@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, MessageSquare, Radio } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { useClinicStore } from '@/state/store'
+import { settingsService } from '@/services'
+import type { WhatsAppConfig } from '@/mocks/whatsappConfig'
 
 function ToggleRow({
   title,
@@ -34,15 +36,27 @@ export function WhatsAppConfigTab() {
   const approved = templates.filter((t) => t.approvalStatus === 'approved').length
   const pending = templates.filter((t) => t.approvalStatus === 'pending').length
 
-  const [sendReminders, setSendReminders] = useState(true)
-  const [sendDoctorCopy, setSendDoctorCopy] = useState(true)
-  const [requireApproval, setRequireApproval] = useState(true)
-  const [reminderLeadDays, setReminderLeadDays] = useState(true)
+  const [config, setConfig] = useState<WhatsAppConfig | null>(null)
 
-  function toggle(setter: (v: boolean) => void, current: boolean, label: string) {
-    setter(!current)
-    toast.success(`${label} ${!current ? 'enabled' : 'disabled'}`)
+  useEffect(() => {
+    let alive = true
+    settingsService.getWhatsAppConfig().then((c) => {
+      if (alive) setConfig(c)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  async function toggle(key: keyof WhatsAppConfig['automation'], label: string) {
+    if (!config) return
+    const next = !config.automation[key]
+    const updated = await settingsService.updateWhatsAppAutomation({ [key]: next })
+    setConfig(updated)
+    toast.success(`${label} ${next ? 'enabled' : 'disabled'}`)
   }
+
+  if (!config) return null
 
   return (
     <div className="space-y-5">
@@ -58,8 +72,8 @@ export function WhatsAppConfigTab() {
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-success" />
             <div>
-              <p className="text-sm font-medium">Connected via Gupshup</p>
-              <p className="text-xs text-muted-foreground">+91 80 4012 3456</p>
+              <p className="text-sm font-medium">Connected via {config.provider}</p>
+              <p className="text-xs text-muted-foreground">{config.phone}</p>
             </div>
           </div>
           <Separator orientation="vertical" className="h-8" />
@@ -84,26 +98,26 @@ export function WhatsAppConfigTab() {
           <ToggleRow
             title="Send follow-up reminders automatically"
             description="Nightly job checks treatment plans and appointments due tomorrow."
-            checked={sendReminders}
-            onCheckedChange={() => toggle(setSendReminders, sendReminders, 'Automatic reminders')}
+            checked={config.automation.sendReminders}
+            onCheckedChange={() => toggle('sendReminders', 'Automatic reminders')}
           />
           <ToggleRow
             title="Send doctor a copy of every reminder"
             description="Keeps the doctor aware of who is due back, without checking the queue."
-            checked={sendDoctorCopy}
-            onCheckedChange={() => toggle(setSendDoctorCopy, sendDoctorCopy, 'Doctor copy')}
+            checked={config.automation.sendDoctorCopy}
+            onCheckedChange={() => toggle('sendDoctorCopy', 'Doctor copy')}
           />
           <ToggleRow
             title="Require doctor approval for broadcasts"
             description="Broadcasts cannot send to patients until a doctor reviews the content."
-            checked={requireApproval}
-            onCheckedChange={() => toggle(setRequireApproval, requireApproval, 'Broadcast approval requirement')}
+            checked={config.automation.requireApproval}
+            onCheckedChange={() => toggle('requireApproval', 'Broadcast approval requirement')}
           />
           <ToggleRow
             title="Send reminders at least 1 day ahead"
             description="Matches the clinic's standard operating procedure."
-            checked={reminderLeadDays}
-            onCheckedChange={() => toggle(setReminderLeadDays, reminderLeadDays, 'Reminder lead time')}
+            checked={config.automation.reminderLeadDays}
+            onCheckedChange={() => toggle('reminderLeadDays', 'Reminder lead time')}
           />
         </CardContent>
       </Card>
@@ -113,10 +127,11 @@ export function WhatsAppConfigTab() {
           <CardTitle>Message categories in use</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Badge variant="secondary">Follow-up reminders</Badge>
-          <Badge variant="secondary">Appointment confirmations</Badge>
-          <Badge variant="secondary">Reschedule acknowledgments</Badge>
-          <Badge variant="secondary">Broadcast announcements</Badge>
+          {config.messageCategories.map((category) => (
+            <Badge key={category} variant="secondary">
+              {category}
+            </Badge>
+          ))}
         </CardContent>
       </Card>
     </div>

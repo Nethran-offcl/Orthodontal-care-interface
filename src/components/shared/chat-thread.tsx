@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/shared/empty-state'
 import { cn, formatDate, formatTime } from '@/lib/utils'
-import type { Conversation } from '@/data/types'
+import type { Conversation } from '@/types'
 
 export function ChatThread({
   conversation,

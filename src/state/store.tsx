@@ -1,15 +1,16 @@
 import * as React from 'react'
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type {
   Appointment,
   AppointmentStatus,
   AppNotification,
   Attachment,
+  AuditLogEntry,
   Broadcast,
-  BroadcastStatus,
   ChartEntry,
   Conversation,
   ConversationStatus,
+  Doctor,
   Escalation,
   EscalationStatus,
   ImageAnnotation,
@@ -21,31 +22,34 @@ import type {
   Reminder,
   ReminderStatus,
   Role,
+  StaffMember,
   TreatmentPlan,
   TreatmentStage,
   TreatmentStageStatus,
-} from '@/data/types'
+} from '@/types'
 import {
-  appointments as seedAppointments,
-  auditLog as seedAuditLog,
-  broadcasts as seedBroadcasts,
-  chartEntries as seedChartEntries,
-  conversations as seedConversations,
-  escalations as seedEscalations,
-  getDoctor,
-  patientImages as seedImages,
-  invoices as seedInvoices,
-  messageTemplates as seedTemplates,
-  notifications as seedNotifications,
-  patients as seedPatients,
-  prescriptions as seedPrescriptions,
-  reminders as seedReminders,
-  treatmentPlans as seedTreatmentPlans,
-} from '@/data'
-import type { AuditLogEntry } from '@/data/types'
+  appointmentsService,
+  auditLogService,
+  broadcastsService,
+  chartEntriesService,
+  chatService,
+  doctorsService,
+  escalationsService,
+  imagesService,
+  invoicesService,
+  notificationsService,
+  patientsService,
+  prescriptionsService,
+  remindersService,
+  templatesService,
+  treatmentPlansService,
+  usersService,
+} from '@/services'
 
 interface Store {
   patients: Patient[]
+  doctors: Doctor[]
+  staff: StaffMember[]
   appointments: Appointment[]
   treatmentPlans: TreatmentPlan[]
   chartEntries: ChartEntry[]
@@ -61,644 +65,436 @@ interface Store {
   auditLog: AuditLogEntry[]
 }
 
-const initialStore: Store = {
-  patients: seedPatients,
-  appointments: seedAppointments,
-  treatmentPlans: seedTreatmentPlans,
-  chartEntries: seedChartEntries,
-  prescriptions: seedPrescriptions,
-  images: seedImages,
-  invoices: seedInvoices,
-  conversations: seedConversations,
-  escalations: seedEscalations,
-  reminders: seedReminders,
-  broadcasts: seedBroadcasts,
-  templates: seedTemplates,
-  notifications: seedNotifications,
-  auditLog: seedAuditLog,
-}
-
-let idCounter = 9000
-function nextId(prefix: string) {
-  idCounter += 1
-  return `${prefix}-${idCounter}`
+const emptyStore: Store = {
+  patients: [],
+  doctors: [],
+  staff: [],
+  appointments: [],
+  treatmentPlans: [],
+  chartEntries: [],
+  prescriptions: [],
+  images: [],
+  invoices: [],
+  conversations: [],
+  escalations: [],
+  reminders: [],
+  broadcasts: [],
+  templates: [],
+  notifications: [],
+  auditLog: [],
 }
 
 interface ClinicStoreValue extends Store {
-  addAuditEntry: (actor: string, action: string, target: string) => void
-  addPatient: (patient: Omit<Patient, 'id'>) => Patient
-  updatePatient: (id: string, patch: Partial<Patient>) => void
-  addAppointment: (appt: Omit<Appointment, 'id'>) => Appointment
-  updateAppointmentStatus: (id: string, status: AppointmentStatus) => void
-  rescheduleAppointment: (id: string, date: string, startTime: string) => void
-  recordPayment: (invoiceId: string, amount: number) => void
-  addChartEntry: (entry: Omit<ChartEntry, 'id'>) => ChartEntry
-  addPrescription: (rx: Omit<Prescription, 'id'>) => Prescription
-  addTreatmentPlan: (plan: Omit<TreatmentPlan, 'id'>) => TreatmentPlan
-  addTreatmentStage: (planId: string, stage: Omit<TreatmentStage, 'id'>) => void
-  updateStageStatus: (planId: string, stageId: string, status: TreatmentStageStatus) => void
-  addImage: (image: Omit<PatientImage, 'id'>) => PatientImage
-  sendMessage: (patientId: string, text: string) => void
-  markConversationRead: (patientId: string) => void
-  simulatePatientReply: (patientId: string, text: string) => void
-  assignConversation: (id: string, assigneeId: string) => void
-  updateConversationStatus: (id: string, status: ConversationStatus) => void
-  addInternalNote: (id: string, author: string, text: string) => void
-  addAttachment: (id: string, attachment: Omit<Attachment, 'id' | 'time'>) => void
+  addAuditEntry: (actor: string, action: string, target: string) => Promise<void>
+  addPatient: (patient: Omit<Patient, 'id'>) => Promise<Patient>
+  updatePatient: (id: string, patch: Partial<Patient>) => Promise<void>
+  addAppointment: (appt: Omit<Appointment, 'id'>) => Promise<Appointment>
+  updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>
+  rescheduleAppointment: (id: string, date: string, startTime: string) => Promise<void>
+  recordPayment: (invoiceId: string, amount: number) => Promise<void>
+  addChartEntry: (entry: Omit<ChartEntry, 'id'>) => Promise<ChartEntry>
+  addPrescription: (rx: Omit<Prescription, 'id'>) => Promise<Prescription>
+  addTreatmentPlan: (plan: Omit<TreatmentPlan, 'id'>) => Promise<TreatmentPlan>
+  addTreatmentStage: (planId: string, stage: Omit<TreatmentStage, 'id'>) => Promise<void>
+  updateStageStatus: (planId: string, stageId: string, status: TreatmentStageStatus) => Promise<void>
+  addImage: (image: Omit<PatientImage, 'id' | 'storagePath'>, file: File) => Promise<PatientImage>
+  sendMessage: (patientId: string, text: string) => Promise<void>
+  markConversationRead: (patientId: string) => Promise<void>
+  simulatePatientReply: (patientId: string, text: string) => Promise<void>
+  assignConversation: (id: string, assigneeId: string) => Promise<void>
+  updateConversationStatus: (id: string, status: ConversationStatus) => Promise<void>
+  addInternalNote: (id: string, author: string, text: string) => Promise<void>
+  addAttachment: (id: string, attachment: Omit<Attachment, 'id' | 'time'>) => Promise<void>
   createEscalation: (
     input: Omit<Escalation, 'id' | 'status' | 'createdAt' | 'comments' | 'history'>,
-  ) => Escalation
-  updateEscalationStatus: (id: string, status: EscalationStatus, actor: string) => void
-  assignEscalation: (id: string, assignedRole: Role, assignedToId: string, actor: string) => void
-  addEscalationComment: (id: string, author: string, text: string) => void
-  addImageAnnotation: (imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => void
-  updateReminderStatus: (id: string, status: ReminderStatus) => void
-  createBroadcast: (bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => Broadcast
-  submitBroadcastForApproval: (id: string) => void
-  approveBroadcast: (id: string) => void
-  rejectBroadcast: (id: string, note: string) => void
-  sendBroadcastNow: (id: string) => void
-  addTemplate: (t: Omit<MessageTemplate, 'id' | 'usedCount' | 'approvalStatus'>) => MessageTemplate
-  markNotificationRead: (id: string) => void
-  markAllNotificationsRead: () => void
-  pushNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read'>) => void
+  ) => Promise<Escalation>
+  updateEscalationStatus: (id: string, status: EscalationStatus, actor: string) => Promise<void>
+  assignEscalation: (id: string, assignedRole: Role, assignedToId: string, actor: string) => Promise<void>
+  addEscalationComment: (id: string, author: string, text: string) => Promise<void>
+  addImageAnnotation: (imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => Promise<void>
+  updateReminderStatus: (id: string, status: ReminderStatus) => Promise<void>
+  createBroadcast: (bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => Promise<Broadcast>
+  submitBroadcastForApproval: (id: string) => Promise<void>
+  approveBroadcast: (id: string) => Promise<void>
+  rejectBroadcast: (id: string, note: string) => Promise<void>
+  sendBroadcastNow: (id: string) => Promise<void>
+  addTemplate: (t: Omit<MessageTemplate, 'id' | 'usedCount' | 'approvalStatus'>) => Promise<MessageTemplate>
+  markNotificationRead: (id: string) => Promise<void>
+  markAllNotificationsRead: () => Promise<void>
+  pushNotification: (n: Omit<AppNotification, 'id' | 'time' | 'read'>) => Promise<void>
 }
 
 const ClinicStoreContext = createContext<ClinicStoreValue | null>(null)
 
 export function ClinicStoreProvider({ children }: { children: React.ReactNode }) {
-  const [store, setStore] = useState<Store>(initialStore)
+  const [store, setStore] = useState<Store>(emptyStore)
+  const [ready, setReady] = useState(false)
 
-  const addAuditEntry = useCallback((actor: string, action: string, target: string) => {
-    setStore((s) => ({
-      ...s,
-      auditLog: [
-        { id: nextId('AL'), actor, action, target, time: new Date().toISOString() },
-        ...s.auditLog,
-      ],
-    }))
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      patientsService.getAll(),
+      doctorsService.getAll(),
+      usersService.getAll(),
+      appointmentsService.getAll(),
+      treatmentPlansService.getAll(),
+      chartEntriesService.getAll(),
+      prescriptionsService.getAll(),
+      imagesService.getAll(),
+      invoicesService.getAll(),
+      chatService.getAll(),
+      escalationsService.getAll(),
+      remindersService.getAll(),
+      broadcastsService.getAll(),
+      templatesService.getAll(),
+      notificationsService.getAll(),
+      auditLogService.getAll(),
+    ]).then(
+      ([
+        patients,
+        doctors,
+        staff,
+        appointments,
+        treatmentPlans,
+        chartEntries,
+        prescriptions,
+        images,
+        invoices,
+        conversations,
+        escalations,
+        reminders,
+        broadcasts,
+        templates,
+        notifications,
+        auditLog,
+      ]) => {
+        if (!alive) return
+        setStore({
+          patients,
+          doctors,
+          staff,
+          appointments,
+          treatmentPlans,
+          chartEntries,
+          prescriptions,
+          images,
+          invoices,
+          conversations,
+          escalations,
+          reminders,
+          broadcasts,
+          templates,
+          notifications,
+          auditLog,
+        })
+        setReady(true)
+      },
+    )
+    return () => {
+      alive = false
+    }
   }, [])
 
-  const pushNotification = useCallback((n: Omit<AppNotification, 'id' | 'time' | 'read'>) => {
-    setStore((s) => ({
-      ...s,
-      notifications: [
-        { ...n, id: nextId('N'), time: new Date().toISOString(), read: false },
-        ...s.notifications,
-      ],
-    }))
+  const addAuditEntry = useCallback(async (actor: string, action: string, target: string) => {
+    const entry = await auditLogService.log(actor, action, target)
+    setStore((s) => ({ ...s, auditLog: [entry, ...s.auditLog] }))
   }, [])
 
-  const addPatient = useCallback((patient: Omit<Patient, 'id'>) => {
-    const newPatient: Patient = { ...patient, id: nextId('PT') }
-    setStore((s) => ({ ...s, patients: [newPatient, ...s.patients] }))
-    addAuditEntry('Priya Kulkarni', 'Added new patient', `${newPatient.name} — ${newPatient.id}`)
-    return newPatient
-  }, [addAuditEntry])
+  const pushNotification = useCallback(async (n: Omit<AppNotification, 'id' | 'time' | 'read'>) => {
+    const created = await notificationsService.push(n)
+    setStore((s) => ({ ...s, notifications: [created, ...s.notifications] }))
+  }, [])
 
-  const updatePatient = useCallback((id: string, patch: Partial<Patient>) => {
-    setStore((s) => ({
-      ...s,
-      patients: s.patients.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-    }))
-    addAuditEntry('Priya Kulkarni', 'Updated patient details', id)
-  }, [addAuditEntry])
+  const addPatient = useCallback(
+    async (patient: Omit<Patient, 'id'>) => {
+      const newPatient = await patientsService.create(patient)
+      setStore((s) => ({ ...s, patients: [newPatient, ...s.patients] }))
+      await addAuditEntry('Priya Kulkarni', 'Added new patient', `${newPatient.name} — ${newPatient.id}`)
+      return newPatient
+    },
+    [addAuditEntry],
+  )
 
-  const addAppointment = useCallback((appt: Omit<Appointment, 'id'>) => {
-    const newAppt: Appointment = { ...appt, id: nextId('APT') }
+  const updatePatient = useCallback(
+    async (id: string, patch: Partial<Patient>) => {
+      const updated = await patientsService.update(id, patch)
+      setStore((s) => ({ ...s, patients: s.patients.map((p) => (p.id === id ? updated : p)) }))
+      await addAuditEntry('Priya Kulkarni', 'Updated patient details', id)
+    },
+    [addAuditEntry],
+  )
+
+  const addAppointment = useCallback(async (appt: Omit<Appointment, 'id'>) => {
+    const newAppt = await appointmentsService.create(appt)
     setStore((s) => ({ ...s, appointments: [...s.appointments, newAppt] }))
-    setStore((s) => {
-      const patient = s.patients.find((p) => p.id === appt.patientId)
-      return {
-        ...s,
-        notifications: [
-          {
-            id: nextId('N'),
-            title: 'Appointment booked',
-            description: `${patient?.name ?? 'A patient'} — ${appt.date} at ${appt.startTime}.`,
-            time: new Date().toISOString(),
-            read: false,
-            type: 'system',
-            href: `/appointments?focus=${newAppt.id}`,
-          },
-          ...s.notifications,
-        ],
-      }
+    const patient = await patientsService.getById(appt.patientId)
+    await pushNotification({
+      title: 'Appointment booked',
+      description: `${patient?.name ?? 'A patient'} — ${appt.date} at ${appt.startTime}.`,
+      type: 'system',
+      href: `/appointments?focus=${newAppt.id}`,
     })
     return newAppt
+  }, [pushNotification])
+
+  const updateAppointmentStatus = useCallback(async (id: string, status: AppointmentStatus) => {
+    const updated = await appointmentsService.updateStatus(id, status)
+    setStore((s) => ({ ...s, appointments: s.appointments.map((a) => (a.id === id ? updated : a)) }))
   }, [])
 
-  const updateAppointmentStatus = useCallback((id: string, status: AppointmentStatus) => {
-    setStore((s) => ({
-      ...s,
-      appointments: s.appointments.map((a) => (a.id === id ? { ...a, status } : a)),
-    }))
+  const rescheduleAppointment = useCallback(async (id: string, date: string, startTime: string) => {
+    const updated = await appointmentsService.reschedule(id, date, startTime)
+    setStore((s) => ({ ...s, appointments: s.appointments.map((a) => (a.id === id ? updated : a)) }))
   }, [])
 
-  const rescheduleAppointment = useCallback((id: string, date: string, startTime: string) => {
-    setStore((s) => ({
-      ...s,
-      appointments: s.appointments.map((a) =>
-        a.id === id ? { ...a, date, startTime, status: 'confirmed' as AppointmentStatus } : a,
-      ),
-    }))
-  }, [])
+  const recordPayment = useCallback(
+    async (invoiceId: string, amount: number) => {
+      const updated = await invoicesService.recordPayment(invoiceId, amount)
+      setStore((s) => ({ ...s, invoices: s.invoices.map((inv) => (inv.id === invoiceId ? updated : inv)) }))
+      await addAuditEntry('Priya Kulkarni', 'Recorded payment', `${invoiceId} — ₹${amount.toLocaleString('en-IN')} received`)
+    },
+    [addAuditEntry],
+  )
 
-  const recordPayment = useCallback((invoiceId: string, amount: number) => {
-    setStore((s) => ({
-      ...s,
-      invoices: s.invoices.map((inv) => {
-        if (inv.id !== invoiceId) return inv
-        const paid = Math.min(inv.total, inv.paid + amount)
-        return { ...inv, paid, status: paid >= inv.total ? 'paid' : 'partial' }
-      }),
-    }))
-    addAuditEntry('Priya Kulkarni', 'Recorded payment', `${invoiceId} — ₹${amount.toLocaleString('en-IN')} received`)
-  }, [addAuditEntry])
-
-  const addChartEntry = useCallback((entry: Omit<ChartEntry, 'id'>) => {
-    const newEntry: ChartEntry = { ...entry, id: nextId('CE') }
+  const addChartEntry = useCallback(async (entry: Omit<ChartEntry, 'id'>) => {
+    const newEntry = await chartEntriesService.create(entry)
     setStore((s) => ({ ...s, chartEntries: [newEntry, ...s.chartEntries] }))
     if (entry.source === 'voice') {
-      setStore((s) => {
-        const patient = s.patients.find((p) => p.id === entry.patientId)
-        return {
-          ...s,
-          notifications: [
-            {
-              id: nextId('N'),
-              title: 'AI review required',
-              description: `Voice-to-chart entry for ${patient?.name ?? 'a patient'} needs a quick confirmation.`,
-              time: new Date().toISOString(),
-              read: false,
-              type: 'ai-review',
-              href: '/ai-charting',
-            },
-            ...s.notifications,
-          ],
-        }
+      const patient = await patientsService.getById(entry.patientId)
+      await pushNotification({
+        title: 'AI review required',
+        description: `Voice-to-chart entry for ${patient?.name ?? 'a patient'} needs a quick confirmation.`,
+        type: 'ai-review',
+        href: '/ai-charting',
       })
     }
     return newEntry
-  }, [])
+  }, [pushNotification])
 
-  const addPrescription = useCallback((rx: Omit<Prescription, 'id'>) => {
-    const newRx: Prescription = { ...rx, id: nextId('RX') }
+  const addPrescription = useCallback(async (rx: Omit<Prescription, 'id'>) => {
+    const newRx = await prescriptionsService.create(rx)
     setStore((s) => ({ ...s, prescriptions: [newRx, ...s.prescriptions] }))
     return newRx
   }, [])
 
-  const addTreatmentPlan = useCallback((plan: Omit<TreatmentPlan, 'id'>) => {
-    const newPlan: TreatmentPlan = { ...plan, id: nextId('TP') }
+  const addTreatmentPlan = useCallback(async (plan: Omit<TreatmentPlan, 'id'>) => {
+    const newPlan = await treatmentPlansService.create(plan)
     setStore((s) => ({ ...s, treatmentPlans: [...s.treatmentPlans, newPlan] }))
     return newPlan
   }, [])
 
-  const addTreatmentStage = useCallback((planId: string, stage: Omit<TreatmentStage, 'id'>) => {
-    const newStage: TreatmentStage = { ...stage, id: nextId('STG') }
-    setStore((s) => ({
-      ...s,
-      treatmentPlans: s.treatmentPlans.map((p) =>
-        p.id === planId ? { ...p, stages: [...p.stages, newStage] } : p,
-      ),
-    }))
+  const addTreatmentStage = useCallback(async (planId: string, stage: Omit<TreatmentStage, 'id'>) => {
+    await treatmentPlansService.addStage(planId, stage)
+    const treatmentPlans = await treatmentPlansService.getAll()
+    setStore((s) => ({ ...s, treatmentPlans }))
   }, [])
 
   const updateStageStatus = useCallback(
-    (planId: string, stageId: string, status: TreatmentStageStatus) => {
-      setStore((s) => ({
-        ...s,
-        treatmentPlans: s.treatmentPlans.map((p) => {
-          if (p.id !== planId) return p
-          const stages = p.stages.map((st) => (st.id === stageId ? { ...st, status } : st))
-          const allDone = stages.every((st) => st.status === 'completed')
-          return { ...p, stages, status: allDone ? 'completed' : 'active' }
-        }),
-      }))
+    async (planId: string, stageId: string, status: TreatmentStageStatus) => {
+      await treatmentPlansService.updateStageStatus(planId, stageId, status)
+      const treatmentPlans = await treatmentPlansService.getAll()
+      setStore((s) => ({ ...s, treatmentPlans }))
     },
     [],
   )
 
-  const addImage = useCallback((image: Omit<PatientImage, 'id'>) => {
-    const newImage: PatientImage = { ...image, id: nextId('IMG') }
+  const addImage = useCallback(async (image: Omit<PatientImage, 'id' | 'storagePath'>, file: File) => {
+    const newImage = await imagesService.create(image, file)
     setStore((s) => ({ ...s, images: [...s.images, newImage] }))
-    setStore((s) => {
-      const patient = s.patients.find((p) => p.id === image.patientId)
-      return {
-        ...s,
-        notifications: [
-          {
-            id: nextId('N'),
-            title: 'Image uploaded',
-            description: `A new ${image.category.replace('-', ' ')} photo was added for ${patient?.name ?? 'a patient'}.`,
-            time: new Date().toISOString(),
-            read: false,
-            type: 'image',
-            href: `/patients/${image.patientId}?tab=images`,
-          },
-          ...s.notifications,
-        ],
-      }
+    const patient = await patientsService.getById(image.patientId)
+    await pushNotification({
+      title: 'Image uploaded',
+      description: `A new ${image.category.replace('-', ' ')} photo was added for ${patient?.name ?? 'a patient'}.`,
+      type: 'image',
+      href: `/patients/${image.patientId}?tab=images`,
     })
     return newImage
+  }, [pushNotification])
+
+  const sendMessage = useCallback(async (patientId: string, text: string) => {
+    await chatService.sendMessage(patientId, text)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
-  const sendMessage = useCallback((patientId: string, text: string) => {
-    setStore((s) => {
-      const existing = s.conversations.find((c) => c.patientId === patientId)
-      const message = {
-        id: nextId('m'),
-        sender: 'clinic' as const,
-        text,
-        time: new Date().toISOString(),
-        status: 'sent' as const,
-      }
-      if (existing) {
-        return {
-          ...s,
-          conversations: s.conversations.map((c) =>
-            c.patientId === patientId
-              ? { ...c, messages: [...c.messages, message], lastMessageAt: message.time }
-              : c,
-          ),
-        }
-      }
-      const newConversation: Conversation = {
-        id: nextId('CV'),
-        patientId,
-        messages: [message],
-        lastMessageAt: message.time,
-        unread: 0,
-        slaMinutes: 0,
-        channel: 'whatsapp',
-        status: 'open',
-        internalNotes: [],
-        attachments: [],
-      }
-      return { ...s, conversations: [...s.conversations, newConversation] }
-    })
+  const markConversationRead = useCallback(async (patientId: string) => {
+    await chatService.markRead(patientId)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
-  const markConversationRead = useCallback((patientId: string) => {
-    setStore((s) => ({
-      ...s,
-      conversations: s.conversations.map((c) => (c.patientId === patientId ? { ...c, unread: 0 } : c)),
-    }))
-  }, [])
-
-  const simulatePatientReply = useCallback((patientId: string, text: string) => {
-    setStore((s) => ({
-      ...s,
-      conversations: s.conversations.map((c) =>
-        c.patientId === patientId
-          ? {
-              ...c,
-              messages: [
-                ...c.messages,
-                { id: nextId('m'), sender: 'patient' as const, text, time: new Date().toISOString() },
-              ],
-              lastMessageAt: new Date().toISOString(),
-              unread: c.unread + 1,
-            }
-          : c,
-      ),
-    }))
+  const simulatePatientReply = useCallback(async (patientId: string, text: string) => {
+    await chatService.simulateReply(patientId, text)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
   const assignConversation = useCallback(
-    (id: string, assigneeId: string) => {
-      setStore((s) => ({
-        ...s,
-        conversations: s.conversations.map((c) => (c.id === id ? { ...c, assigneeId } : c)),
-      }))
-      const doctor = getDoctor(assigneeId)
+    async (id: string, assigneeId: string) => {
+      await chatService.assign(id, assigneeId)
+      const conversations = await chatService.getAll()
+      setStore((s) => ({ ...s, conversations }))
+      const doctor = await doctorsService.getById(assigneeId)
       if (doctor) {
-        setStore((s) => {
-          const conv = s.conversations.find((c) => c.id === id)
-          const patient = conv ? s.patients.find((p) => p.id === conv.patientId) : undefined
-          return {
-            ...s,
-            notifications: [
-              {
-                id: nextId('N'),
-                title: 'Doctor assigned',
-                description: `${doctor.name} was assigned to ${patient?.name ?? 'a patient'}'s conversation.`,
-                time: new Date().toISOString(),
-                read: false,
-                type: 'assignment',
-                href: '/messaging',
-              },
-              ...s.notifications,
-            ],
-          }
+        const conv = conversations.find((c) => c.id === id)
+        const patient = conv ? await patientsService.getById(conv.patientId) : undefined
+        await pushNotification({
+          title: 'Doctor assigned',
+          description: `${doctor.name} was assigned to ${patient?.name ?? 'a patient'}'s conversation.`,
+          type: 'assignment',
+          href: '/messaging',
         })
       }
-      addAuditEntry('Priya Kulkarni', 'Assigned conversation', id)
+      await addAuditEntry('Priya Kulkarni', 'Assigned conversation', id)
     },
-    [addAuditEntry],
+    [addAuditEntry, pushNotification],
   )
 
-  const updateConversationStatus = useCallback((id: string, status: ConversationStatus) => {
-    setStore((s) => ({
-      ...s,
-      conversations: s.conversations.map((c) => (c.id === id ? { ...c, status } : c)),
-    }))
+  const updateConversationStatus = useCallback(async (id: string, status: ConversationStatus) => {
+    await chatService.updateStatus(id, status)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
-  const addInternalNote = useCallback((id: string, author: string, text: string) => {
-    setStore((s) => ({
-      ...s,
-      conversations: s.conversations.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              internalNotes: [
-                ...c.internalNotes,
-                { id: nextId('IN'), author, text, time: new Date().toISOString() },
-              ],
-            }
-          : c,
-      ),
-    }))
+  const addInternalNote = useCallback(async (id: string, author: string, text: string) => {
+    await chatService.addInternalNote(id, author, text)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
-  const addAttachment = useCallback((id: string, attachment: Omit<Attachment, 'id' | 'time'>) => {
-    setStore((s) => ({
-      ...s,
-      conversations: s.conversations.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              attachments: [
-                ...c.attachments,
-                { ...attachment, id: nextId('AT'), time: new Date().toISOString() },
-              ],
-            }
-          : c,
-      ),
-    }))
+  const addAttachment = useCallback(async (id: string, attachment: Omit<Attachment, 'id' | 'time'>) => {
+    await chatService.addAttachment(id, attachment)
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
   }, [])
 
   const createEscalation = useCallback(
-    (input: Omit<Escalation, 'id' | 'status' | 'createdAt' | 'comments' | 'history'>) => {
-      const newEsc: Escalation = {
-        ...input,
-        id: nextId('ESC'),
-        status: 'open',
-        createdAt: new Date().toISOString(),
-        comments: [],
-        history: [
-          { id: nextId('EH'), action: 'Escalation created', actor: input.createdBy, time: new Date().toISOString() },
-        ],
-      }
+    async (input: Omit<Escalation, 'id' | 'status' | 'createdAt' | 'comments' | 'history'>) => {
+      const newEsc = await escalationsService.create(input)
       setStore((s) => ({ ...s, escalations: [newEsc, ...s.escalations] }))
-      setStore((s) => {
-        const patient = s.patients.find((p) => p.id === input.patientId)
-        return {
-          ...s,
-          notifications: [
-            {
-              id: nextId('N'),
-              title: 'Escalation created',
-              description: `${patient?.name ?? 'A patient'} — ${input.reason.slice(0, 80)}${input.reason.length > 80 ? '…' : ''}`,
-              time: new Date().toISOString(),
-              read: false,
-              type: 'escalation',
-              href: '/messaging/escalations',
-            },
-            ...s.notifications,
-          ],
-        }
+      const patient = await patientsService.getById(input.patientId)
+      await pushNotification({
+        title: 'Escalation created',
+        description: `${patient?.name ?? 'A patient'} — ${input.reason.slice(0, 80)}${input.reason.length > 80 ? '…' : ''}`,
+        type: 'escalation',
+        href: '/messaging/escalations',
       })
-      addAuditEntry(input.createdBy, 'Created escalation', newEsc.id)
+      await addAuditEntry(input.createdBy, 'Created escalation', newEsc.id)
       return newEsc
     },
-    [addAuditEntry],
+    [addAuditEntry, pushNotification],
   )
 
-  const updateEscalationStatus = useCallback((id: string, status: EscalationStatus, actor: string) => {
-    setStore((s) => ({
-      ...s,
-      escalations: s.escalations.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              status,
-              history: [
-                ...e.history,
-                { id: nextId('EH'), action: `Marked ${status.replace('-', ' ')}`, actor, time: new Date().toISOString() },
-              ],
-            }
-          : e,
-      ),
-    }))
+  const updateEscalationStatus = useCallback(async (id: string, status: EscalationStatus, actor: string) => {
+    const updated = await escalationsService.updateStatus(id, status, actor)
+    setStore((s) => ({ ...s, escalations: s.escalations.map((e) => (e.id === id ? updated : e)) }))
   }, [])
 
   const assignEscalation = useCallback(
-    (id: string, assignedRole: Role, assignedToId: string, actor: string) => {
-      setStore((s) => ({
-        ...s,
-        escalations: s.escalations.map((e) =>
-          e.id === id
-            ? {
-                ...e,
-                assignedRole,
-                assignedToId,
-                history: [
-                  ...e.history,
-                  { id: nextId('EH'), action: 'Reassigned', actor, time: new Date().toISOString() },
-                ],
-              }
-            : e,
-        ),
-      }))
+    async (id: string, assignedRole: Role, assignedToId: string, actor: string) => {
+      const updated = await escalationsService.assign(id, assignedRole, assignedToId, actor)
+      setStore((s) => ({ ...s, escalations: s.escalations.map((e) => (e.id === id ? updated : e)) }))
       if (assignedRole === 'doctor') {
-        const doctor = getDoctor(assignedToId)
-        setStore((s) => {
-          const esc = s.escalations.find((e) => e.id === id)
-          const patient = esc ? s.patients.find((p) => p.id === esc.patientId) : undefined
-          return {
-            ...s,
-            notifications: [
-              {
-                id: nextId('N'),
-                title: 'Doctor assigned',
-                description: `${doctor?.name ?? 'A doctor'} was assigned to an escalation for ${patient?.name ?? 'a patient'}.`,
-                time: new Date().toISOString(),
-                read: false,
-                type: 'assignment',
-                href: '/messaging/escalations',
-              },
-              ...s.notifications,
-            ],
-          }
+        const doctor = await doctorsService.getById(assignedToId)
+        const patient = await patientsService.getById(updated.patientId)
+        await pushNotification({
+          title: 'Doctor assigned',
+          description: `${doctor?.name ?? 'A doctor'} was assigned to an escalation for ${patient?.name ?? 'a patient'}.`,
+          type: 'assignment',
+          href: '/messaging/escalations',
         })
       }
     },
-    [],
+    [pushNotification],
   )
 
-  const addEscalationComment = useCallback((id: string, author: string, text: string) => {
-    setStore((s) => ({
-      ...s,
-      escalations: s.escalations.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              comments: [...e.comments, { id: nextId('ECM'), author, text, time: new Date().toISOString() }],
-              history: [
-                ...e.history,
-                { id: nextId('EH'), action: 'Comment added', actor: author, time: new Date().toISOString() },
-              ],
-            }
-          : e,
-      ),
-    }))
+  const addEscalationComment = useCallback(async (id: string, author: string, text: string) => {
+    const updated = await escalationsService.addComment(id, author, text)
+    setStore((s) => ({ ...s, escalations: s.escalations.map((e) => (e.id === id ? updated : e)) }))
   }, [])
 
-  const addImageAnnotation = useCallback((imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => {
-    setStore((s) => ({
-      ...s,
-      images: s.images.map((img) =>
-        img.id === imageId
-          ? { ...img, annotations: [...img.annotations, { ...annotation, id: nextId('AN') }] }
-          : img,
-      ),
-    }))
+  const addImageAnnotation = useCallback(async (imageId: string, annotation: Omit<ImageAnnotation, 'id'>) => {
+    await imagesService.addAnnotation(imageId, annotation)
+    const images = await imagesService.getAll()
+    setStore((s) => ({ ...s, images }))
   }, [])
 
-  const updateReminderStatus = useCallback((id: string, status: ReminderStatus) => {
-    setStore((s) => ({
-      ...s,
-      reminders: s.reminders.map((r) => (r.id === id ? { ...r, status } : r)),
-    }))
+  const updateReminderStatus = useCallback(async (id: string, status: ReminderStatus) => {
+    const updated = await remindersService.updateStatus(id, status)
+    setStore((s) => ({ ...s, reminders: s.reminders.map((r) => (r.id === id ? updated : r)) }))
     if (status === 'no-response') {
-      setStore((s) => {
-        const reminder = s.reminders.find((r) => r.id === id)
-        const patient = reminder ? s.patients.find((p) => p.id === reminder.patientId) : undefined
-        return {
-          ...s,
-          notifications: [
-            {
-              id: nextId('N'),
-              title: 'Reminder failed to get a response',
-              description: `${patient?.name ?? 'A patient'} hasn't responded to their follow-up reminder.`,
-              time: new Date().toISOString(),
-              read: false,
-              type: 'reminder',
-              href: '/messaging/reminders',
-            },
-            ...s.notifications,
-          ],
-        }
+      const patient = await patientsService.getById(updated.patientId)
+      await pushNotification({
+        title: 'Reminder failed to get a response',
+        description: `${patient?.name ?? 'A patient'} hasn't responded to their follow-up reminder.`,
+        type: 'reminder',
+        href: '/messaging/reminders',
       })
     }
-  }, [])
+  }, [pushNotification])
 
-  const createBroadcast = useCallback((bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => {
-    const newBc: Broadcast = {
-      ...bc,
-      id: nextId('BC'),
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-    }
+  const createBroadcast = useCallback(async (bc: Omit<Broadcast, 'id' | 'status' | 'createdAt'>) => {
+    const newBc = await broadcastsService.create(bc)
     setStore((s) => ({ ...s, broadcasts: [newBc, ...s.broadcasts] }))
     return newBc
   }, [])
 
-  const setBroadcastStatus = useCallback(
-    (id: string, status: BroadcastStatus, extra?: Partial<Broadcast>) => {
-      setStore((s) => ({
-        ...s,
-        broadcasts: s.broadcasts.map((b) => (b.id === id ? { ...b, status, ...extra } : b)),
-      }))
-    },
-    [],
-  )
-
   const submitBroadcastForApproval = useCallback(
-    (id: string) => {
-      setBroadcastStatus(id, 'pending-approval')
-      setStore((s) => {
-        const bc = s.broadcasts.find((b) => b.id === id)
-        return bc
-          ? {
-              ...s,
-              notifications: [
-                {
-                  id: nextId('N'),
-                  title: 'Broadcast awaiting your approval',
-                  description: `"${bc.title}" needs review before it can send to ${bc.audienceCount} patients.`,
-                  time: new Date().toISOString(),
-                  read: false,
-                  type: 'broadcast',
-                  href: '/messaging/broadcasts',
-                },
-                ...s.notifications,
-              ],
-            }
-          : s
+    async (id: string) => {
+      const updated = await broadcastsService.submitForApproval(id)
+      setStore((s) => ({ ...s, broadcasts: s.broadcasts.map((b) => (b.id === id ? updated : b)) }))
+      await pushNotification({
+        title: 'Broadcast awaiting your approval',
+        description: `"${updated.title}" needs review before it can send to ${updated.audienceCount} patients.`,
+        type: 'broadcast',
+        href: '/messaging/broadcasts',
       })
     },
-    [setBroadcastStatus],
+    [pushNotification],
   )
 
   const approveBroadcast = useCallback(
-    (id: string) => {
-      setBroadcastStatus(id, 'approved')
-      addAuditEntry('Dr. Arjun Rao', 'Approved broadcast', id)
-    },
-    [setBroadcastStatus, addAuditEntry],
-  )
-
-  const rejectBroadcast = useCallback(
-    (id: string, note: string) => {
-      setBroadcastStatus(id, 'rejected', { reviewNote: note })
-      addAuditEntry('Dr. Arjun Rao', 'Rejected broadcast', id)
-    },
-    [setBroadcastStatus, addAuditEntry],
-  )
-
-  const sendBroadcastNow = useCallback(
-    (id: string) => {
-      setStore((s) => {
-        const bc = s.broadcasts.find((b) => b.id === id)
-        const delivered = bc ? Math.round(bc.audienceCount * 0.97) : 0
-        return {
-          ...s,
-          broadcasts: s.broadcasts.map((b) =>
-            b.id === id
-              ? {
-                  ...b,
-                  status: 'sent',
-                  sentAt: new Date().toISOString(),
-                  deliveredCount: delivered,
-                  readCount: Math.round(delivered * 0.6),
-                }
-              : b,
-          ),
-        }
-      })
-      addAuditEntry('Priya Kulkarni', 'Sent broadcast', id)
+    async (id: string) => {
+      const updated = await broadcastsService.approve(id)
+      setStore((s) => ({ ...s, broadcasts: s.broadcasts.map((b) => (b.id === id ? updated : b)) }))
+      await addAuditEntry('Dr. Arjun Rao', 'Approved broadcast', id)
     },
     [addAuditEntry],
   )
 
-  const addTemplate = useCallback((t: Omit<MessageTemplate, 'id' | 'usedCount' | 'approvalStatus'>) => {
-    const newTemplate: MessageTemplate = { ...t, id: nextId('TPL'), usedCount: 0, approvalStatus: 'pending' }
+  const rejectBroadcast = useCallback(
+    async (id: string, note: string) => {
+      const updated = await broadcastsService.reject(id, note)
+      setStore((s) => ({ ...s, broadcasts: s.broadcasts.map((b) => (b.id === id ? updated : b)) }))
+      await addAuditEntry('Dr. Arjun Rao', 'Rejected broadcast', id)
+    },
+    [addAuditEntry],
+  )
+
+  const sendBroadcastNow = useCallback(
+    async (id: string) => {
+      const updated = await broadcastsService.sendNow(id)
+      setStore((s) => ({ ...s, broadcasts: s.broadcasts.map((b) => (b.id === id ? updated : b)) }))
+      await addAuditEntry('Priya Kulkarni', 'Sent broadcast', id)
+    },
+    [addAuditEntry],
+  )
+
+  const addTemplate = useCallback(async (t: Omit<MessageTemplate, 'id' | 'usedCount' | 'approvalStatus'>) => {
+    const newTemplate = await templatesService.create(t)
     setStore((s) => ({ ...s, templates: [...s.templates, newTemplate] }))
     return newTemplate
   }, [])
 
-  const markNotificationRead = useCallback((id: string) => {
-    setStore((s) => ({
-      ...s,
-      notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    }))
+  const markNotificationRead = useCallback(async (id: string) => {
+    const updated = await notificationsService.markRead(id)
+    setStore((s) => ({ ...s, notifications: s.notifications.map((n) => (n.id === id ? updated : n)) }))
   }, [])
 
-  const markAllNotificationsRead = useCallback(() => {
-    setStore((s) => ({ ...s, notifications: s.notifications.map((n) => ({ ...n, read: true })) }))
+  const markAllNotificationsRead = useCallback(async () => {
+    await notificationsService.markAllRead()
+    const notifications = await notificationsService.getAll()
+    setStore((s) => ({ ...s, notifications }))
   }, [])
 
   const value = useMemo<ClinicStoreValue>(
@@ -779,6 +575,8 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
       pushNotification,
     ],
   )
+
+  if (!ready) return null
 
   return <ClinicStoreContext.Provider value={value}>{children}</ClinicStoreContext.Provider>
 }

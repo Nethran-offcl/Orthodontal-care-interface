@@ -34,13 +34,13 @@ export function BroadcastComposerDialog({ open, onOpenChange }: { open: boolean;
     setAudience(audiences[0].value)
   }
 
-  function submit(sendForApproval: boolean) {
+  async function submit(sendForApproval: boolean) {
     if (!title || !message) {
       toast.error('Add a title and message before saving.')
       return
     }
     const chosen = audiences.find((a) => a.value === audience)!
-    const bc = createBroadcast({
+    const bc = await createBroadcast({
       title,
       message,
       audience,

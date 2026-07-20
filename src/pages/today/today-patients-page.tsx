@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { getTodaysAppointments } from '@/data'
+import { TODAY_ISO } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 
 export function TodayPatientsPage() {
@@ -13,10 +13,10 @@ export function TodayPatientsPage() {
   const { appointments, patients } = useClinicStore()
   const currentDoctorId = userId ?? ''
 
-  const todays = getTodaysAppointments(currentDoctorId).map((a) => {
-    const live = appointments.find((x) => x.id === a.id) ?? a
-    return { ...live, patient: patients.find((p) => p.id === live.patientId) }
-  })
+  const todays = appointments
+    .filter((a) => a.date === TODAY_ISO && a.doctorId === currentDoctorId)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .map((a) => ({ ...a, patient: patients.find((p) => p.id === a.patientId) }))
 
   return (
     <div>

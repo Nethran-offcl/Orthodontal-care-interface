@@ -6,11 +6,10 @@ import { BarList } from '@/components/shared/bar-list'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useClinicStore } from '@/state/store'
-import { doctors } from '@/data'
 import { formatCurrency } from '@/lib/utils'
 
 export function ReportsPage() {
-  const { appointments, invoices, reminders, broadcasts, patients } = useClinicStore()
+  const { appointments, invoices, reminders, broadcasts, patients, doctors } = useClinicStore()
 
   const revenue = useMemo(() => invoices.reduce((s, i) => s + i.paid, 0), [invoices])
   const outstanding = useMemo(() => invoices.reduce((s, i) => s + (i.total - i.paid), 0), [invoices])

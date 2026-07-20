@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Columns2,
@@ -17,9 +17,32 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/shared/empty-state'
 import { UploadImageDialog } from '@/pages/patients/upload-image-dialog'
+import { imagesService } from '@/services'
 import { useClinicStore } from '@/state/store'
 import { cn, formatDate } from '@/lib/utils'
-import type { ImageCategory, PatientImage } from '@/data/types'
+import type { ImageCategory, PatientImage } from '@/types'
+
+/** Fetches a time-limited signed URL for a private-bucket image and keeps it fresh per storage path. */
+function useSignedImageUrl(storagePath: string) {
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    setUrl(null)
+    if (!storagePath) return
+    imagesService
+      .getSignedUrl(storagePath)
+      .then((u) => {
+        if (alive) setUrl(u)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [storagePath])
+
+  return url
+}
 
 const categories: { value: ImageCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -38,10 +61,6 @@ const categoryLabel: Record<ImageCategory, string> = {
   xray: 'X-Ray',
 }
 
-function imageGradient(image: PatientImage) {
-  return `linear-gradient(135deg, hsl(${image.hue} 55% 88%), hsl(${image.hue} 45% 62%))`
-}
-
 function ImageTile({
   image,
   onClick,
@@ -55,6 +74,7 @@ function ImageTile({
   checked: boolean
   onToggleCheck: () => void
 }) {
+  const url = useSignedImageUrl(image.storagePath)
   return (
     <div className="group relative flex shrink-0 flex-col gap-1.5" style={{ width: 128 }}>
       <button
@@ -63,11 +83,12 @@ function ImageTile({
       >
         <div
           className={cn(
-            'h-28 w-32 rounded-lg border transition-transform group-hover:scale-[1.02]',
+            'h-28 w-32 overflow-hidden rounded-lg border bg-secondary transition-transform group-hover:scale-[1.02]',
             checked ? 'border-primary ring-2 ring-primary' : 'border-border',
           )}
-          style={{ background: imageGradient(image) }}
-        />
+        >
+          {url && <img src={url} alt={image.toothArea} className="h-full w-full object-cover" />}
+        </div>
       </button>
       {compareMode && (
         <input
@@ -85,9 +106,23 @@ function ImageTile({
   )
 }
 
+function CompareTile({ image }: { image: PatientImage }) {
+  const url = useSignedImageUrl(image.storagePath)
+  return (
+    <div className="space-y-2">
+      <div className="h-56 w-full overflow-hidden rounded-lg border border-border bg-secondary">
+        {url && <img src={url} alt={image.toothArea} className="h-full w-full object-cover" />}
+      </div>
+      <p className="text-xs font-medium">{formatDate(image.date)}</p>
+      <p className="text-xs text-muted-foreground">{image.note}</p>
+    </div>
+  )
+}
+
 export function ImagesTab({ patientId, images }: { patientId: string; images: PatientImage[] }) {
   const { addImageAnnotation } = useClinicStore()
   const [selected, setSelected] = useState<PatientImage | null>(null)
+  const selectedUrl = useSignedImageUrl(selected?.storagePath ?? '')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<ImageCategory | 'all'>('all')
   const [compareMode, setCompareMode] = useState(false)
@@ -246,12 +281,15 @@ export function ImagesTab({ patientId, images }: { patientId: string; images: Pa
                 </Button>
               </div>
 
-              <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border">
+              <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border bg-secondary">
                 <div
                   onClick={handleImageClick}
                   className={cn('absolute inset-0 transition-transform', annotateMode && 'cursor-crosshair')}
-                  style={{ background: imageGradient(selected), transform: `scale(${zoom})` }}
+                  style={{ transform: `scale(${zoom})` }}
                 >
+                  {selectedUrl && (
+                    <img src={selectedUrl} alt={selected.toothArea} className="absolute inset-0 h-full w-full object-cover" />
+                  )}
                   {selected.annotations.map((a, i) => (
                     <span
                       key={a.id}
@@ -318,11 +356,7 @@ export function ImagesTab({ patientId, images }: { patientId: string; images: Pa
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             {[...compareImages].sort((a, b) => a.date.localeCompare(b.date)).map((img) => (
-              <div key={img.id} className="space-y-2">
-                <div className="h-56 w-full rounded-lg border border-border" style={{ background: imageGradient(img) }} />
-                <p className="text-xs font-medium">{formatDate(img.date)}</p>
-                <p className="text-xs text-muted-foreground">{img.note}</p>
-              </div>
+              <CompareTile key={img.id} image={img} />
             ))}
           </div>
         </DialogContent>

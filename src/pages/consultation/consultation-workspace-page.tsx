@@ -20,11 +20,10 @@ import { TranscriptReviewStep } from '@/pages/consultation/transcript-review-ste
 import { PrescriptionStep } from '@/pages/consultation/prescription-step'
 import { TreatmentPlanTab } from '@/pages/patients/tabs/treatment-plan-tab'
 import { ImagesTab } from '@/pages/patients/tabs/images-tab'
-import { generateStructuredChart } from '@/pages/consultation/mock-transcript'
-import type { StructuredChart } from '@/pages/consultation/mock-transcript'
+import { voiceService } from '@/services'
+import type { StructuredChart } from '@/services'
 import { useClinicStore } from '@/state/store'
-import { getDoctor } from '@/data'
-import { daysFromToday } from '@/data/dates'
+import { daysFromToday } from '@/lib/date'
 import { cn, formatCurrency } from '@/lib/utils'
 
 const STEPS = [
@@ -41,6 +40,7 @@ export function ConsultationWorkspacePage() {
   const {
     appointments,
     patients,
+    doctors,
     treatmentPlans,
     images,
     updateAppointmentStatus,
@@ -61,7 +61,7 @@ export function ConsultationWorkspacePage() {
     return <Navigate to="/appointments" replace />
   }
 
-  const doctor = getDoctor(appointment.doctorId)
+  const doctor = doctors.find((d) => d.id === appointment.doctorId)
   const firstName = patient.name.split(' ')[0]
   const myPlans = treatmentPlans.filter((t) => t.patientId === patient.id)
   const myImages = images.filter((i) => i.patientId === patient.id).sort((a, b) => a.date.localeCompare(b.date))
@@ -75,8 +75,8 @@ export function ConsultationWorkspacePage() {
     setStep(index)
   }
 
-  function handleRecordingComplete() {
-    const result = generateStructuredChart(appointment!, patient!)
+  async function handleRecordingComplete() {
+    const result = await voiceService.generateStructuredChart(appointment!, patient!)
     setGenerated(result)
     setMode('voice')
     unlock(1)
@@ -98,8 +98,8 @@ export function ConsultationWorkspacePage() {
     unlock(1)
   }
 
-  function handleChartConfirm(structured: StructuredChart) {
-    const entry = addChartEntry({
+  async function handleChartConfirm(structured: StructuredChart) {
+    const entry = await addChartEntry({
       patientId: patient!.id,
       date: daysFromToday(0),
       doctorId: appointment!.doctorId,

@@ -1,34 +1,31 @@
+import { useEffect, useState } from 'react'
 import { Check, Minus, ShieldCheck } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { RoleBadge } from '@/components/shared/role-badge'
+import { authService } from '@/services'
+import type { ModulePermission, PermissionRoleKey } from '@/mocks/permissions'
 import { cn } from '@/lib/utils'
 
-const roles = [
+const roles: { key: PermissionRoleKey; label: string }[] = [
   { key: 'doctor', label: 'Doctor' },
   { key: 'reception', label: 'Receptionist' },
   { key: 'admin', label: 'Administrator' },
-] as const
-
-const modules: { name: string; access: Record<(typeof roles)[number]['key'], boolean> }[] = [
-  { name: 'Dashboard', access: { doctor: true, reception: true, admin: true } },
-  { name: 'Appointments & calendar', access: { doctor: true, reception: true, admin: true } },
-  { name: 'Patient records', access: { doctor: true, reception: true, admin: true } },
-  { name: 'Consultation & charting', access: { doctor: true, reception: false, admin: false } },
-  { name: 'Prescriptions', access: { doctor: true, reception: false, admin: false } },
-  { name: 'Treatment plans', access: { doctor: true, reception: false, admin: false } },
-  { name: 'Billing', access: { doctor: true, reception: true, admin: true } },
-  { name: 'WhatsApp messaging', access: { doctor: true, reception: true, admin: true } },
-  { name: 'Broadcast approval', access: { doctor: true, reception: false, admin: false } },
-  { name: 'Reports', access: { doctor: true, reception: false, admin: true } },
-  { name: 'Analytics', access: { doctor: false, reception: false, admin: true } },
-  { name: 'Manage doctors & staff', access: { doctor: false, reception: false, admin: true } },
-  { name: 'Audit logs', access: { doctor: false, reception: false, admin: true } },
-  { name: 'AI settings', access: { doctor: false, reception: false, admin: true } },
-  { name: 'Clinic settings', access: { doctor: false, reception: false, admin: true } },
 ]
 
 export function AdminRolesPage() {
+  const [modules, setModules] = useState<ModulePermission[]>([])
+
+  useEffect(() => {
+    let alive = true
+    authService.getPermissionsMatrix().then((matrix) => {
+      if (alive) setModules(matrix)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   return (
     <div>
       <PageHeader

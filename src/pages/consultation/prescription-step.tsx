@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { draftPrescription } from '@/lib/ai-mock'
-import type { PrescriptionMedicine } from '@/data/types'
+import { aiService } from '@/services'
+import type { PrescriptionMedicine } from '@/types'
 
 export function PrescriptionStep({
   initialMedicines,
@@ -36,8 +36,9 @@ export function PrescriptionStep({
     setMedicines((meds) => meds.filter((_, i) => i !== index))
   }
 
-  function draftWithAi() {
-    setMedicines((meds) => [...meds, ...draftPrescription(diagnosis ?? '')])
+  async function draftWithAi() {
+    const drafted = await aiService.draftPrescription(diagnosis ?? '')
+    setMedicines((meds) => [...meds, ...drafted])
   }
 
   const validMedicines = medicines.filter((m) => m.name.trim())

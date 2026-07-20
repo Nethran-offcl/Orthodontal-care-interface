@@ -1,17 +1,18 @@
 import { Stethoscope } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { StaffManagementCard } from '@/components/shared/staff-management-card'
-import { doctors } from '@/data'
-
-const seedMembers = doctors.map((d) => ({
-  id: d.id,
-  name: d.name,
-  title: d.title,
-  email: d.email,
-  role: 'doctor' as const,
-}))
+import { useClinicStore } from '@/state/store'
 
 export function AdminDoctorsPage() {
+  const { doctors } = useClinicStore()
+  const seedMembers = doctors.map((d) => ({
+    id: d.id,
+    name: d.name,
+    title: d.title,
+    email: d.email,
+    role: 'doctor' as const,
+  }))
+
   return (
     <div>
       <PageHeader title="Manage doctors" description="Doctor accounts and their clinic credentials." />

@@ -10,20 +10,20 @@ import { Badge } from '@/components/ui/badge'
 import { AiRecommendedActions } from '@/components/shared/ai-recommended-actions'
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { getDoctor, getTodaysAppointments } from '@/data'
+import { TODAY_ISO } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 
 export function DoctorDashboard() {
   const { userId } = useAuth()
   const currentDoctorId = userId ?? ''
-  const { appointments, patients, broadcasts, treatmentPlans } = useClinicStore()
+  const { appointments, patients, doctors, broadcasts, treatmentPlans } = useClinicStore()
   const navigate = useNavigate()
-  const doctor = getDoctor(currentDoctorId)
+  const doctor = doctors.find((d) => d.id === currentDoctorId)
 
-  const todays = getTodaysAppointments(currentDoctorId).map((a) => {
-    const live = appointments.find((x) => x.id === a.id) ?? a
-    return { ...live, patient: patients.find((p) => p.id === live.patientId) }
-  })
+  const todays = appointments
+    .filter((a) => a.date === TODAY_ISO && a.doctorId === currentDoctorId)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .map((a) => ({ ...a, patient: patients.find((p) => p.id === a.patientId) }))
 
   const nextUp = todays.find((a) => a.status === 'confirmed' || a.status === 'checked-in')
   const completedCount = todays.filter((a) => a.status === 'completed').length

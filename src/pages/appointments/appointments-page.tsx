@@ -30,14 +30,13 @@ import { NewAppointmentDialog } from '@/pages/appointments/new-appointment-dialo
 import { AppointmentDetailSheet } from '@/pages/appointments/appointment-detail-sheet'
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { doctors } from '@/data'
-import { iso } from '@/data/dates'
+import { iso } from '@/lib/date'
 
 type ViewMode = 'day' | 'week' | 'month'
 
 export function AppointmentsPage() {
   const { role, userId } = useAuth()
-  const { appointments, patients } = useClinicStore()
+  const { appointments, patients, doctors } = useClinicStore()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [view, setView] = useState<ViewMode>('day')
@@ -159,6 +158,7 @@ export function AppointmentsPage() {
             <DayView
               appointments={dayAppointments}
               patients={patients}
+              doctors={doctors}
               showDoctor={role !== 'doctor'}
               onSelect={setFocusedId}
             />

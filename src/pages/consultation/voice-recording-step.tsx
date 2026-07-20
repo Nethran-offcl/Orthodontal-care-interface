@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Mic, PenLine, Square, Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { voiceService } from '@/services'
 import { cn } from '@/lib/utils'
 
 const BAR_COUNT = 32
@@ -36,11 +37,10 @@ export function VoiceRecordingStep({
     setStatus('recording')
   }
 
-  function stopRecording() {
+  async function stopRecording() {
     setStatus('transcribing')
-    window.setTimeout(() => {
-      onComplete()
-    }, 1500)
+    await voiceService.simulateTranscription()
+    onComplete()
   }
 
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0')

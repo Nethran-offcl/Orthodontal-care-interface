@@ -11,9 +11,9 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { generateTreatmentSummary } from '@/lib/ai-mock'
+import { aiService } from '@/services'
 import { formatDate } from '@/lib/utils'
-import type { TreatmentPlan } from '@/data/types'
+import type { TreatmentPlan } from '@/types'
 
 export function TreatmentPlansPage() {
   const { role, userId } = useAuth()
@@ -25,10 +25,11 @@ export function TreatmentPlansPage() {
   const active = scoped.filter((t) => t.status === 'active')
   const completed = scoped.filter((t) => t.status === 'completed')
 
-  function handleSummarize(plan: TreatmentPlan) {
+  async function handleSummarize(plan: TreatmentPlan) {
     const patient = patients.find((p) => p.id === plan.patientId)
     if (!patient) return
-    setSummaries((s) => ({ ...s, [plan.id]: generateTreatmentSummary(plan, patient) }))
+    const summary = await aiService.generateTreatmentSummary(plan, patient)
+    setSummaries((s) => ({ ...s, [plan.id]: summary }))
   }
 
   function renderPlan(plan: TreatmentPlan) {

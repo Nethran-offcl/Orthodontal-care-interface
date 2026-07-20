@@ -8,7 +8,13 @@
       "Bash(node \".smoke-tmp/voice-flow.mjs\")",
       "Bash(rm -rf .smoke-tmp)",
       "Bash(npm uninstall *)",
-      "Bash(pkill -f \"vite\")"
+      "Bash(pkill -f \"vite\")",
+      "Bash(npm ls *)",
+      "Bash(npx oxlint *)",
+      "Bash(python -m pip install python-docx --quiet)",
+      "Bash(python \"C:\\\\Users\\\\nethr\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-nethr-codenclickz-wireframe\\\\5741e403-602a-4c0b-8769-c97d371d4850\\\\scratchpad\\\\update_changelog.py\")",
+      "Bash(python *)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

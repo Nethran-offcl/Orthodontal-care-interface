@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { RecordPaymentDialog } from '@/pages/patients/record-payment-dialog'
 import { useClinicStore } from '@/state/store'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { Invoice } from '@/data/types'
+import type { Invoice } from '@/types'
 
 export function BillingPage() {
   const { invoices, patients } = useClinicStore()

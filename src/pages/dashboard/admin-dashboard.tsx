@@ -8,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { AiRecommendedActions } from '@/components/shared/ai-recommended-actions'
 import { useClinicStore } from '@/state/store'
-import { doctors, receptionists, admins } from '@/data'
 import { formatCurrency, formatDate, formatRelativeTime } from '@/lib/utils'
 
 export function AdminDashboard() {
-  const { patients, invoices, broadcasts, auditLog } = useClinicStore()
+  const { patients, doctors, staff, invoices, broadcasts, auditLog } = useClinicStore()
   const navigate = useNavigate()
 
   const revenue = invoices.reduce((s, i) => s + i.paid, 0)
@@ -20,8 +19,12 @@ export function AdminDashboard() {
   const recentActivity = [...auditLog].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 6)
   const team = [
     ...doctors.map((d) => ({ id: d.id, name: d.name, title: d.title, href: '/admin/doctors' })),
-    ...receptionists.map((r) => ({ id: r.id, name: r.name, title: r.title, href: '/admin/receptionists' })),
-    ...admins.map((a) => ({ id: a.id, name: a.name, title: a.title, href: '/admin/users' })),
+    ...staff.map((s) => ({
+      id: s.id,
+      name: s.name,
+      title: s.title,
+      href: s.role === 'admin' ? '/admin/users' : '/admin/receptionists',
+    })),
   ]
 
   return (
@@ -40,7 +43,7 @@ export function AdminDashboard() {
         />
         <StatTile
           label="Staff"
-          value={receptionists.length + admins.length}
+          value={staff.length}
           icon={<UsersRound className="h-4 w-4" />}
           onClick={() => navigate('/admin/users')}
         />

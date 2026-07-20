@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { StatTile } from '@/components/shared/stat-tile'
-import { getDoctor } from '@/data'
+import { useClinicStore } from '@/state/store'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { Appointment, Patient } from '@/data/types'
+import type { Appointment, Patient } from '@/types'
 
 export function OverviewTab({ patient, appointments }: { patient: Patient; appointments: Appointment[] }) {
-  const doctor = getDoctor(patient.primaryDoctorId)
+  const { doctors } = useClinicStore()
+  const doctor = doctors.find((d) => d.id === patient.primaryDoctorId)
   const sorted = [...appointments].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
   const upcoming = sorted.filter((a) => a.status === 'confirmed' || a.status === 'pending' || a.status === 'checked-in')
   const past = [...sorted].filter((a) => a.status === 'completed').reverse()

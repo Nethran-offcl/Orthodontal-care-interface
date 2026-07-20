@@ -1,17 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Bot,
-  CalendarPlus,
-  FileText,
-  Megaphone,
-  Receipt,
-  Stethoscope,
-  UsersRound,
-  ShieldCheck,
-  UserPlus,
-  CalendarDays,
-} from 'lucide-react'
+import { Bot, CalendarPlus, FileText, Megaphone, Receipt, UserPlus, CalendarDays } from 'lucide-react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -24,14 +13,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { useAppState } from '@/state/app-state'
-import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { getDoctor, doctors } from '@/data'
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen, setAiAssistantOpen } = useAppState()
-  const { login } = useAuth()
-  const { patients, appointments } = useClinicStore()
+  const { patients, appointments, doctors } = useClinicStore()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
@@ -105,7 +91,7 @@ export function CommandPalette() {
           <CommandGroup heading="Appointments">
             {filteredAppointments.map((a) => {
               const patient = patients.find((p) => p.id === a.patientId)
-              const doctor = getDoctor(a.doctorId)
+              const doctor = doctors.find((d) => d.id === a.doctorId)
               return (
                 <CommandItem
                   key={a.id}
@@ -155,31 +141,6 @@ export function CommandPalette() {
           >
             <Bot className="h-4 w-4" />
             Ask AI
-          </CommandItem>
-        </CommandGroup>
-
-        <CommandSeparator />
-        <CommandGroup heading="Preview as">
-          <CommandItem
-            value="preview-doctor"
-            onSelect={() => { login('doctor', doctors[0]?.id ?? ''); setCommandPaletteOpen(false) }}
-          >
-            <Stethoscope className="h-4 w-4" />
-            Doctor view
-          </CommandItem>
-          <CommandItem
-            value="preview-receptionist"
-            onSelect={() => { login('receptionist', 'staff-priya'); setCommandPaletteOpen(false) }}
-          >
-            <UsersRound className="h-4 w-4" />
-            Receptionist view
-          </CommandItem>
-          <CommandItem
-            value="preview-admin"
-            onSelect={() => { login('admin', 'staff-meera'); setCommandPaletteOpen(false) }}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Administrator view
           </CommandItem>
         </CommandGroup>
       </CommandList>

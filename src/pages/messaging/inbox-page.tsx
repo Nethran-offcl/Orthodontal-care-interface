@@ -34,11 +34,10 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { ConversationStatusBadge } from '@/components/shared/status-badge'
 import { EscalateConversationDialog } from '@/pages/messaging/escalate-conversation-dialog'
 import { useClinicStore } from '@/state/store'
-import { doctors, receptionists, admins, getDoctor, getStaff } from '@/data'
-import { suggestReply, summarizeConversation } from '@/lib/ai-mock'
+import { aiService, pickRandomDemoAttachment } from '@/services'
 import { buildPatientTimeline } from '@/lib/patient-timeline'
 import { cn, formatRelativeTime, formatDate } from '@/lib/utils'
-import type { ConversationChannel, ConversationStatus } from '@/data/types'
+import type { ConversationChannel, ConversationStatus } from '@/types'
 
 const channelMeta: Record<ConversationChannel, { label: string; icon: typeof MessageCircle; className: string }> = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, className: 'text-whatsapp' },
@@ -77,6 +76,8 @@ export function InboxPage() {
     images,
     prescriptions,
     invoices,
+    doctors,
+    staff,
     sendMessage,
     markConversationRead,
     assignConversation,
@@ -122,17 +123,17 @@ export function InboxPage() {
 
   function assigneeName(id?: string) {
     if (!id) return undefined
-    return getDoctor(id)?.name ?? getStaff(id)?.name
+    return doctors.find((d) => d.id === id)?.name ?? staff.find((s) => s.id === id)?.name
   }
 
-  function handleAiReply() {
+  async function handleAiReply() {
     if (!selected || !selectedPatient) return
-    setDraft(suggestReply(selected, selectedPatient.name))
+    setDraft(await aiService.suggestReply(selected, selectedPatient.name))
   }
 
-  function handleSummarize() {
+  async function handleSummarize() {
     if (!selected || !selectedPatient) return
-    setSummary(summarizeConversation(selected, selectedPatient.name))
+    setSummary(await aiService.summarizeConversation(selected, selectedPatient.name))
   }
 
   function handleAddNote() {
@@ -143,19 +144,12 @@ export function InboxPage() {
 
   function handleAttach() {
     if (!selected) return
-    const names = ['x-ray-scan.jpg', 'insurance-card.pdf', 'payment-receipt.pdf', 'voice-memo.mp3']
-    const name = names[Math.floor(Math.random() * names.length)]
-    addAttachment(selected.id, {
-      name,
-      kind: name.endsWith('.mp3') ? 'audio' : name.endsWith('.pdf') ? 'document' : 'image',
-      sizeKb: Math.floor(80 + Math.random() * 900),
-    })
+    addAttachment(selected.id, pickRandomDemoAttachment())
   }
 
   const allAssignees = [
     ...doctors.map((d) => ({ id: d.id, name: d.name, role: 'Doctor' })),
-    ...receptionists.map((r) => ({ id: r.id, name: r.name, role: 'Receptionist' })),
-    ...admins.map((a) => ({ id: a.id, name: a.name, role: 'Administrator' })),
+    ...staff.map((s) => ({ id: s.id, name: s.name, role: s.role === 'admin' ? 'Administrator' : 'Receptionist' })),
   ]
 
   const timeline = selected ? buildPatientTimeline(selected.patientId, { appointments, chartEntries, images, prescriptions, invoices, conversations }) : []

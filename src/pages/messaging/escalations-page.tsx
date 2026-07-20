@@ -9,28 +9,27 @@ import { EscalationPriorityBadge, EscalationStatusBadge } from '@/components/sha
 import { NewEscalationDialog } from '@/pages/messaging/new-escalation-dialog'
 import { useClinicStore } from '@/state/store'
 import { useAuth } from '@/state/auth-state'
-import { getDoctor, getStaff } from '@/data'
 import { formatRelativeTime } from '@/lib/utils'
-import type { EscalationStatus } from '@/data/types'
+import type { Doctor, EscalationStatus, StaffMember } from '@/types'
 
-function assigneeName(id?: string) {
+function assigneeName(id: string | undefined, doctors: Doctor[], staff: StaffMember[]) {
   if (!id) return 'Unassigned'
-  return getDoctor(id)?.name ?? getStaff(id)?.name ?? 'Unassigned'
+  return doctors.find((d) => d.id === id)?.name ?? staff.find((s) => s.id === id)?.name ?? 'Unassigned'
 }
 
-function currentActorName(role: string | null, userId: string | null) {
-  if (role === 'doctor') return getDoctor(userId ?? '')?.name ?? 'Staff'
-  return getStaff(userId ?? '')?.name ?? 'Staff'
+function currentActorName(role: string | null, userId: string | null, doctors: Doctor[], staff: StaffMember[]) {
+  if (role === 'doctor') return doctors.find((d) => d.id === userId)?.name ?? 'Staff'
+  return staff.find((s) => s.id === userId)?.name ?? 'Staff'
 }
 
 export function EscalationsPage() {
-  const { escalations, patients, addEscalationComment, updateEscalationStatus } = useClinicStore()
+  const { escalations, patients, doctors, staff, addEscalationComment, updateEscalationStatus } = useClinicStore()
   const { role, userId } = useAuth()
   const [newOpen, setNewOpen] = useState(false)
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
 
   const sorted = [...escalations].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const actor = currentActorName(role, userId)
+  const actor = currentActorName(role, userId, doctors, staff)
 
   function submitComment(id: string) {
     const text = (commentDrafts[id] ?? '').trim()
@@ -71,7 +70,7 @@ export function EscalationsPage() {
                 <div className="space-y-4">
                   <p className="text-sm leading-relaxed">{esc.reason}</p>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span>Assigned to <span className="font-medium text-foreground">{assigneeName(esc.assignedToId)}</span></span>
+                    <span>Assigned to <span className="font-medium text-foreground">{assigneeName(esc.assignedToId, doctors, staff)}</span></span>
                     <span>·</span>
                     <span>Created by {esc.createdBy}</span>
                   </div>

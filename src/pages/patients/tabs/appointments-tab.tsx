@@ -2,10 +2,11 @@ import { CalendarDays } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AppointmentRow, AppointmentRowButton } from '@/components/shared/appointment-row'
 import { EmptyState } from '@/components/shared/empty-state'
-import { getDoctor } from '@/data'
-import type { Appointment, Patient } from '@/data/types'
+import { useClinicStore } from '@/state/store'
+import type { Appointment, Patient } from '@/types'
 
 export function AppointmentsTab({ patient, appointments }: { patient: Patient; appointments: Appointment[] }) {
+  const { doctors } = useClinicStore()
   const sorted = [...appointments].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
   const upcoming = sorted.filter((a) => a.status === 'confirmed' || a.status === 'pending' || a.status === 'checked-in')
   const past = [...sorted]
@@ -23,7 +24,7 @@ export function AppointmentsTab({ patient, appointments }: { patient: Patient; a
             key={a.id}
             appointment={a}
             patient={patient}
-            doctor={getDoctor(a.doctorId)}
+            doctor={doctors.find((d) => d.id === a.doctorId)}
             showDoctor
             action={<AppointmentRowButton to={`/appointments?focus=${a.id}`} label="Manage" />}
           />

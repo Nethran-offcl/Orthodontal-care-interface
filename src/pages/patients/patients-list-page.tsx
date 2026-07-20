@@ -10,11 +10,10 @@ import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { EmptyState } from '@/components/shared/empty-state'
 import { NewPatientDialog } from '@/pages/patients/new-patient-dialog'
 import { useClinicStore } from '@/state/store'
-import { getDoctor } from '@/data'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 
 export function PatientsListPage() {
-  const { patients, appointments } = useClinicStore()
+  const { patients, appointments, doctors } = useClinicStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [newOpen, setNewOpen] = useState(false)
@@ -84,7 +83,7 @@ export function PatientsListPage() {
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((p) => {
-                const doctor = getDoctor(p.primaryDoctorId)
+                const doctor = doctors.find((d) => d.id === p.primaryDoctorId)
                 const visit = lastVisit(p.id)
                 return (
                   <Link

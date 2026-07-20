@@ -3,7 +3,7 @@ import { Clock, Stethoscope } from 'lucide-react'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { AppointmentStatusBadge } from '@/components/shared/status-badge'
 import { Button } from '@/components/ui/button'
-import type { Appointment, Doctor, Patient } from '@/data/types'
+import type { Appointment, Doctor, Patient } from '@/types'
 import { cn } from '@/lib/utils'
 
 export function AppointmentRow({

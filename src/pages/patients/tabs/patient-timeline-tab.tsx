@@ -15,11 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/empty-state'
 import { useClinicStore } from '@/state/store'
-import { generateFollowUpMessage } from '@/lib/ai-mock'
+import { aiService } from '@/services'
 import { buildPatientTimeline } from '@/lib/patient-timeline'
 import type { TimelineEventType } from '@/lib/patient-timeline'
 import { formatDate } from '@/lib/utils'
-import type { Patient } from '@/data/types'
+import type { Patient } from '@/types'
 
 const iconMap: Record<TimelineEventType, typeof CalendarDays> = {
   appointment: CalendarDays,
@@ -38,8 +38,8 @@ export function PatientTimelineTab({ patient }: { patient: Patient }) {
   const activePlan = treatmentPlans.find((p) => p.patientId === patient.id && p.status === 'active')
   const nextStage = activePlan?.stages.find((s) => s.status !== 'completed')
 
-  function handleSuggestFollowUp() {
-    const text = generateFollowUpMessage(patient.name, activePlan?.title ?? 'their treatment', nextStage?.label)
+  async function handleSuggestFollowUp() {
+    const text = await aiService.generateFollowUpMessage(patient.name, activePlan?.title ?? 'their treatment', nextStage?.label)
     setSuggestion(text)
   }
 

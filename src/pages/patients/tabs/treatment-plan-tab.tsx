@@ -10,9 +10,9 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { NewTreatmentPlanDialog } from '@/pages/patients/new-treatment-plan-dialog'
 import { AddStageDialog } from '@/pages/patients/add-stage-dialog'
 import { useClinicStore } from '@/state/store'
-import { generateTreatmentSummary } from '@/lib/ai-mock'
+import { aiService } from '@/services'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { TreatmentPlan } from '@/data/types'
+import type { TreatmentPlan } from '@/types'
 
 export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plans: TreatmentPlan[] }) {
   const { updateStageStatus, patients } = useClinicStore()
@@ -23,9 +23,10 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
   const patient = patients.find((p) => p.id === patientId)
   const sorted = [...plans].sort((a) => (a.status === 'active' ? -1 : 1))
 
-  function handleSummarize(plan: TreatmentPlan) {
+  async function handleSummarize(plan: TreatmentPlan) {
     if (!patient) return
-    setSummaries((s) => ({ ...s, [plan.id]: generateTreatmentSummary(plan, patient) }))
+    const summary = await aiService.generateTreatmentSummary(plan, patient)
+    setSummaries((s) => ({ ...s, [plan.id]: summary }))
   }
 
   return (

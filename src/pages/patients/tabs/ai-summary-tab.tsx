@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, IndianRupee, ListChecks, RefreshCw, Sparkles, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { generatePatientAiSummary } from '@/lib/ai-mock'
-import type { Appointment, Invoice, Patient, TreatmentPlan } from '@/data/types'
+import { aiService } from '@/services'
+import type { Appointment, Invoice, Patient, TreatmentPlan } from '@/types'
+
+type AiSummary = Awaited<ReturnType<typeof aiService.generatePatientAiSummary>>
+
+const emptySummary: AiSummary = { riskFlags: [], adherence: '', financial: '', nextAction: '' }
 
 export function AiSummaryTab({
   patient,
@@ -17,13 +21,19 @@ export function AiSummaryTab({
   plans: TreatmentPlan[]
   invoices: Invoice[]
 }) {
-  const [summary, setSummary] = useState(() => generatePatientAiSummary(patient, { appointments, plans, invoices }))
+  const [summary, setSummary] = useState<AiSummary>(emptySummary)
   const [generatedAt, setGeneratedAt] = useState(new Date())
 
-  function regenerate() {
-    setSummary(generatePatientAiSummary(patient, { appointments, plans, invoices }))
+  async function regenerate() {
+    const next = await aiService.generatePatientAiSummary(patient, { appointments, plans, invoices })
+    setSummary(next)
     setGeneratedAt(new Date())
   }
+
+  useEffect(() => {
+    regenerate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient.id])
 
   return (
     <div className="space-y-4">

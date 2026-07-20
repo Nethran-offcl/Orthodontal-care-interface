@@ -3,7 +3,7 @@ import { Bot, Send, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { answerKnowledgeQuestion } from '@/lib/ai-mock'
+import { aiService } from '@/services'
 import { useAppState } from '@/state/app-state'
 
 interface QaTurn {
@@ -23,10 +23,10 @@ export function KnowledgeAssistantDialog() {
   const [question, setQuestion] = useState('')
   const [turns, setTurns] = useState<QaTurn[]>([])
 
-  function ask(q: string) {
+  async function ask(q: string) {
     const text = q.trim()
     if (!text) return
-    const answer = answerKnowledgeQuestion(text)
+    const answer = await aiService.answerKnowledgeQuestion(text)
     setTurns((t) => [...t, { id: `${Date.now()}`, question: text, answer }])
     setQuestion('')
   }

@@ -1,53 +1,39 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Bot, MessageCircle, Mic, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { aiService } from '@/services'
+import type { AiFeatureToggle } from '@/mocks/aiSettings'
 
-const toggles = [
-  {
-    key: 'voice-to-chart',
-    icon: Mic,
-    title: 'Voice-to-chart',
-    description: 'Structure consultation recordings into chart entries automatically.',
-    defaultOn: true,
-  },
-  {
-    key: 'ai-charting',
-    icon: Sparkles,
-    title: 'AI charting suggestions',
-    description: 'Suggest diagnoses and procedures while a doctor is charting.',
-    defaultOn: true,
-  },
-  {
-    key: 'ai-receptionist',
-    icon: Bot,
-    title: 'AI receptionist',
-    description: 'Answer routine WhatsApp questions before handing off to front desk.',
-    defaultOn: false,
-  },
-  {
-    key: 'smart-followups',
-    icon: MessageCircle,
-    title: 'Smart follow-up suggestions',
-    description: 'Recommend reminder timing based on treatment plan progress.',
-    defaultOn: true,
-  },
-]
+const iconByKey: Record<string, typeof Mic> = {
+  'voice-to-chart': Mic,
+  'ai-charting': Sparkles,
+  'ai-receptionist': Bot,
+  'smart-followups': MessageCircle,
+}
 
 export function AdminAiSettingsPage() {
-  const [state, setState] = useState<Record<string, boolean>>(
-    Object.fromEntries(toggles.map((t) => [t.key, t.defaultOn])),
-  )
+  const [toggles, setToggles] = useState<AiFeatureToggle[]>([])
 
-  function toggle(key: string, label: string) {
-    setState((s) => {
-      const next = !s[key]
-      toast(next ? `${label} enabled` : `${label} disabled`)
-      return { ...s, [key]: next }
+  useEffect(() => {
+    let alive = true
+    aiService.getSettings().then((settings) => {
+      if (alive) setToggles(settings)
     })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  async function toggle(key: string, label: string) {
+    const current = toggles.find((t) => t.key === key)
+    if (!current) return
+    const updated = await aiService.updateSetting(key, !current.enabled)
+    setToggles((ts) => ts.map((t) => (t.key === key ? updated : t)))
+    toast(updated.enabled ? `${label} enabled` : `${label} disabled`)
   }
 
   return (
@@ -59,25 +45,28 @@ export function AdminAiSettingsPage() {
 
       <Card>
         <CardContent className="divide-y divide-border p-0">
-          {toggles.map((t) => (
-            <div key={t.key} className="flex items-center gap-4 p-5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <t.icon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{t.title}</p>
-                  {!state[t.key] && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Off
-                    </Badge>
-                  )}
+          {toggles.map((t) => {
+            const Icon = iconByKey[t.key] ?? Sparkles
+            return (
+              <div key={t.key} className="flex items-center gap-4 p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{t.title}</p>
+                    {!t.enabled && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Off
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>
+                </div>
+                <Switch checked={t.enabled} onCheckedChange={() => toggle(t.key, t.title)} />
               </div>
-              <Switch checked={state[t.key]} onCheckedChange={() => toggle(t.key, t.title)} />
-            </div>
-          ))}
+            )
+          })}
         </CardContent>
       </Card>
 

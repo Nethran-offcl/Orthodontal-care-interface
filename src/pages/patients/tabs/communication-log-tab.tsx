@@ -5,7 +5,7 @@ import { ConversationStatusBadge } from '@/components/shared/status-badge'
 import { Badge } from '@/components/ui/badge'
 import { ChatThread } from '@/components/shared/chat-thread'
 import { useClinicStore } from '@/state/store'
-import type { Conversation } from '@/data/types'
+import type { Conversation } from '@/types'
 
 const channelLabel: Record<Conversation['channel'], string> = {
   whatsapp: 'WhatsApp',

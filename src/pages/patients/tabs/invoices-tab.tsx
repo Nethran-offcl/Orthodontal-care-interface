@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RecordPaymentDialog } from '@/pages/patients/record-payment-dialog'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { Invoice } from '@/data/types'
+import type { Invoice } from '@/types'
 
 export function InvoicesTab({ invoices }: { invoices: Invoice[] }) {
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null)

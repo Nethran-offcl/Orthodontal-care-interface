@@ -1,19 +1,25 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import { recommendedActionsFor } from '@/lib/ai-mock'
+import { aiService } from '@/services'
+
+type RecommendedAction = Awaited<ReturnType<typeof aiService.recommendedActionsFor>>[number]
 
 export function AiRecommendedActions() {
   const { role, userId } = useAuth()
   const { broadcasts, reminders, invoices, appointments, chartEntries } = useClinicStore()
   const navigate = useNavigate()
+  const [actions, setActions] = useState<RecommendedAction[]>([])
 
-  const actions = useMemo(() => {
-    if (!role) return []
+  useEffect(() => {
+    if (!role) {
+      setActions([])
+      return
+    }
     const pendingBroadcasts = broadcasts.filter((b) => b.status === 'pending-approval').length
     const needingCall = reminders.filter((r) => r.status === 'no-response' || r.status === 'rescheduled').length
     const outstandingCount = invoices.filter((i) => i.status !== 'paid').length
@@ -22,13 +28,15 @@ export function AiRecommendedActions() {
       (c) => c.source === 'voice' && (role !== 'doctor' || c.doctorId === userId),
     ).length
 
-    return recommendedActionsFor(role, {
-      pendingBroadcasts,
-      needingCall,
-      outstandingCount,
-      unconfirmedCount,
-      aiReviewCount,
-    })
+    let alive = true
+    aiService
+      .recommendedActionsFor(role, { pendingBroadcasts, needingCall, outstandingCount, unconfirmedCount, aiReviewCount })
+      .then((next) => {
+        if (alive) setActions(next)
+      })
+    return () => {
+      alive = false
+    }
   }, [role, userId, broadcasts, reminders, invoices, appointments, chartEntries])
 
   if (actions.length === 0) return null

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { CalendarPlus, Clock, Sparkles } from 'lucide-react'
@@ -10,9 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClinicStore } from '@/state/store'
-import { suggestAppointmentSlot } from '@/lib/ai-mock'
-import { doctors } from '@/data'
-import { daysFromToday, TODAY_ISO } from '@/data/dates'
+import { aiService } from '@/services'
+import { daysFromToday, TODAY_ISO } from '@/lib/date'
 
 const durations = [15, 20, 30, 45, 60]
 const dayStartMin = 9 * 60
@@ -26,7 +25,7 @@ function toTime(mins: number) {
 }
 
 export function BookingPage() {
-  const { patients, appointments, addAppointment, sendMessage } = useClinicStore()
+  const { patients, doctors, appointments, addAppointment, sendMessage } = useClinicStore()
   const navigate = useNavigate()
 
   const [patientId, setPatientId] = useState('')
@@ -50,9 +49,18 @@ export function BookingPage() {
     return slots.slice(0, 8)
   }, [appointments, doctorId, date])
 
-  const recommendedSlot = useMemo(() => suggestAppointmentSlot(openSlots), [openSlots])
+  const [recommendedSlot, setRecommendedSlot] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    aiService.suggestAppointmentSlot(openSlots).then((slot) => {
+      if (alive) setRecommendedSlot(slot)
+    })
+    return () => {
+      alive = false
+    }
+  }, [openSlots])
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!patientId) {
       toast.error('Select a patient to continue.')
@@ -63,7 +71,7 @@ export function BookingPage() {
       return
     }
 
-    const appt = addAppointment({
+    const appt = await addAppointment({
       patientId,
       doctorId,
       date,

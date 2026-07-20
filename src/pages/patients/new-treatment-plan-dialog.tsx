@@ -13,8 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { doctors } from '@/data'
-import { daysFromToday } from '@/data/dates'
+import { daysFromToday } from '@/lib/date'
 import { useClinicStore } from '@/state/store'
 import { useAuth } from '@/state/auth-state'
 
@@ -27,7 +26,7 @@ export function NewTreatmentPlanDialog({
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
-  const { addTreatmentPlan } = useClinicStore()
+  const { doctors, addTreatmentPlan } = useClinicStore()
   const { role, userId } = useAuth()
   const currentDoctorId = role === 'doctor' && userId ? userId : (doctors[0]?.id ?? '')
   const [title, setTitle] = useState('')

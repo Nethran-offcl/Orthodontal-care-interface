@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Camera, ImagePlus } from 'lucide-react'
 import {
@@ -15,9 +15,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { daysFromToday } from '@/data/dates'
+import { daysFromToday } from '@/lib/date'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
-import type { ImageCategory } from '@/data/types'
+import type { ImageCategory } from '@/types'
 
 const categoryOptions: { value: ImageCategory; label: string }[] = [
   { value: 'clinical', label: 'Clinical Photo' },
@@ -37,39 +38,69 @@ export function UploadImageDialog({
   onOpenChange: (o: boolean) => void
 }) {
   const { addImage } = useClinicStore()
+  const { role, userId } = useAuth()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [toothArea, setToothArea] = useState('')
   const [note, setNote] = useState('')
   const [category, setCategory] = useState<ImageCategory>('clinical')
   const [marketingConsent, setMarketingConsent] = useState(false)
-  const [captured, setCaptured] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
 
   function reset() {
     setToothArea('')
     setNote('')
     setCategory('clinical')
     setMarketingConsent(false)
-    setCaptured(false)
+    setFile(null)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0]
+    if (!picked) return
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setFile(picked)
+    setPreviewUrl(URL.createObjectURL(picked))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!toothArea || !captured) {
-      toast.error('Capture a photo and tag the tooth or area first.')
+    if (!toothArea || !file) {
+      toast.error('Choose a photo and tag the tooth or area first.')
       return
     }
-    addImage({
-      patientId,
-      toothArea,
-      note: note || 'Treatment photo',
-      date: daysFromToday(0),
-      marketingConsent,
-      hue: Math.floor(Math.random() * 360),
-      category,
-      annotations: [],
-    })
-    toast.success('Photo added to patient record')
-    onOpenChange(false)
-    reset()
+    setSubmitting(true)
+    try {
+      await addImage(
+        {
+          patientId,
+          toothArea,
+          note: note || 'Treatment photo',
+          date: daysFromToday(0),
+          marketingConsent,
+          category,
+          annotations: [],
+          uploadedByDoctorId: role === 'doctor' ? (userId ?? undefined) : undefined,
+        },
+        file,
+      )
+      toast.success('Photo added to patient record')
+      onOpenChange(false)
+      reset()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -83,21 +114,30 @@ export function UploadImageDialog({
           <DialogDescription>Stored with this visit's chart entry, timestamped automatically.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => setCaptured(true)}
-            className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-32 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
-            {captured ? (
-              <div
-                className="h-16 w-16 rounded-md"
-                style={{ background: `linear-gradient(135deg, hsl(200 40% 88%), hsl(200 40% 70%))` }}
-              />
+            {previewUrl ? (
+              <img src={previewUrl} alt="Selected upload preview" className="h-full w-full object-cover" />
             ) : (
-              <Camera className="h-6 w-6" />
+              <>
+                <Camera className="h-6 w-6" />
+                <span className="text-xs font-medium">Tap to choose a photo</span>
+              </>
             )}
-            <span className="text-xs font-medium">{captured ? 'Photo captured — tap to retake' : 'Tap to capture photo'}</span>
           </button>
+          {previewUrl && (
+            <p className="-mt-2 text-center text-xs text-muted-foreground">Tap the photo above to choose a different one</p>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="img-area">Tooth / area</Label>
@@ -133,7 +173,9 @@ export function UploadImageDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save to record</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Uploading…' : 'Save to record'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

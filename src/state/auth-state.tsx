@@ -1,59 +1,67 @@
 import * as React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
-import type { Role } from '@/data/types'
-
-interface StoredAuth {
-  role: Role
-  userId: string
-}
+import type { Role } from '@/types'
+import { authService } from '@/services'
+import { supabase } from '@/lib/supabase'
 
 interface AuthValue {
   isAuthenticated: boolean
   role: Role | null
   userId: string | null
-  login: (role: Role, userId: string) => void
+  login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
 
-const STORAGE_KEY = 'sunrise-auth'
-
 const AuthContext = createContext<AuthValue | null>(null)
 
-function readStoredAuth(): StoredAuth | null {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as StoredAuth
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useState<StoredAuth | null>(() => readStoredAuth())
+  const [session, setSession] = useState<{ role: Role; userId: string } | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (auth) {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(auth))
-    } else {
-      sessionStorage.removeItem(STORAGE_KEY)
-    }
-  }, [auth])
+    let alive = true
 
-  function login(role: Role, userId: string) {
-    setAuth({ role, userId })
+    authService.getSession().then((s) => {
+      if (!alive) return
+      setSession(s)
+      setReady(true)
+    })
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+      if (!alive) return
+      if (event === 'SIGNED_OUT') {
+        setSession(null)
+        return
+      }
+      authService.getSession().then((s) => {
+        if (alive) setSession(s)
+      })
+    })
+
+    return () => {
+      alive = false
+      subscription.subscription.unsubscribe()
+    }
+  }, [])
+
+  async function login(email: string, password: string) {
+    const s = await authService.login(email, password)
+    setSession(s)
   }
 
   function logout() {
-    setAuth(null)
+    setSession(null)
+    void authService.logout()
   }
+
+  if (!ready) return null
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!auth,
-        role: auth?.role ?? null,
-        userId: auth?.userId ?? null,
+        isAuthenticated: !!session,
+        role: session?.role ?? null,
+        userId: session?.userId ?? null,
         login,
         logout,
       }}

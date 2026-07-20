@@ -17,11 +17,10 @@ import {
 } from '@/components/ui/dialog'
 import { useClinicStore } from '@/state/store'
 import { useAuth } from '@/state/auth-state'
-import { draftPrescription } from '@/lib/ai-mock'
-import { daysFromToday } from '@/data/dates'
-import { doctors } from '@/data'
+import { aiService } from '@/services'
+import { daysFromToday } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
-import type { Prescription, PrescriptionMedicine } from '@/data/types'
+import type { Prescription, PrescriptionMedicine } from '@/types'
 
 function DraftWithAiDialog({
   patientId,
@@ -34,14 +33,14 @@ function DraftWithAiDialog({
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
-  const { addPrescription } = useClinicStore()
+  const { doctors, addPrescription } = useClinicStore()
   const { role, userId } = useAuth()
   const [diagnosis, setDiagnosis] = useState(latestDiagnosis)
   const [medicines, setMedicines] = useState<PrescriptionMedicine[]>([])
   const [notes, setNotes] = useState('')
 
-  function generate() {
-    setMedicines(draftPrescription(diagnosis || 'general checkup'))
+  async function generate() {
+    setMedicines(await aiService.draftPrescription(diagnosis || 'general checkup'))
   }
 
   function removeMedicine(i: number) {

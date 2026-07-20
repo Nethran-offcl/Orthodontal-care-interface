@@ -2,11 +2,12 @@ import { Mic } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/shared/empty-state'
-import { getDoctor } from '@/data'
+import { useClinicStore } from '@/state/store'
 import { formatDate } from '@/lib/utils'
-import type { ChartEntry } from '@/data/types'
+import type { ChartEntry } from '@/types'
 
 export function VoiceNotesTab({ entries }: { entries: ChartEntry[] }) {
+  const { doctors } = useClinicStore()
   const voiceEntries = entries.filter((e) => e.source === 'voice').sort((a, b) => b.date.localeCompare(a.date))
 
   if (voiceEntries.length === 0) {
@@ -22,7 +23,7 @@ export function VoiceNotesTab({ entries }: { entries: ChartEntry[] }) {
   return (
     <div className="space-y-3">
       {voiceEntries.map((entry) => {
-        const doctor = getDoctor(entry.doctorId)
+        const doctor = doctors.find((d) => d.id === entry.doctorId)
         return (
           <Card key={entry.id}>
             <CardContent className="space-y-3 p-4 sm:p-5">

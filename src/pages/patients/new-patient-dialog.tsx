@@ -21,15 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { doctors } from '@/data'
-import { daysFromToday } from '@/data/dates'
+import { daysFromToday } from '@/lib/date'
 import { useClinicStore } from '@/state/store'
-import type { LeadSource } from '@/data/types'
+import type { LeadSource } from '@/types'
 
 const leadSources: LeadSource[] = ['Walk-in', 'Referral', 'Google', 'Instagram', 'Facebook']
 
 export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { addPatient } = useClinicStore()
+  const { doctors, addPatient } = useClinicStore()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
@@ -54,7 +53,7 @@ export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpen
     setDetailed(false)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name || !phone || !age) {
       toast.error('Name, phone, and age are required to hold a slot.')
@@ -62,7 +61,7 @@ export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpen
     }
 
     const completeness = detailed || address ? 100 : 40
-    const patient = addPatient({
+    const patient = await addPatient({
       name,
       phone,
       age: Number(age),

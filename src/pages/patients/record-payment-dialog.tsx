@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useClinicStore } from '@/state/store'
 import { formatCurrency } from '@/lib/utils'
-import type { Invoice } from '@/data/types'
+import type { Invoice } from '@/types'
 
 export function RecordPaymentDialog({
   invoice,
