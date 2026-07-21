@@ -3,6 +3,8 @@ import { AppShell } from '@/components/layout/app-shell'
 import { useAuth } from '@/state/auth-state'
 import { LandingPage } from '@/pages/marketing/landing-page'
 import { LoginPage } from '@/pages/auth/login-page'
+import { SignupPage } from '@/pages/auth/signup-page'
+import { PendingApprovalPage } from '@/pages/auth/pending-approval-page'
 import { DashboardPage } from '@/pages/dashboard/dashboard-page'
 import { TodayPatientsPage } from '@/pages/today/today-patients-page'
 import { AppointmentsPage } from '@/pages/appointments/appointments-page'
@@ -36,13 +38,22 @@ import { AdminAiSettingsPage } from '@/pages/admin/ai-settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 
 function App() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isPending } = useAuth()
+
+  if (isPending) {
+    return (
+      <Routes>
+        <Route path="*" element={<PendingApprovalPage />} />
+      </Routes>
+    )
+  }
 
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -51,6 +62,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/signup" element={<Navigate to="/" replace />} />
       <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="today" element={<TodayPatientsPage />} />

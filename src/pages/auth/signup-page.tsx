@@ -6,31 +6,49 @@ import { Stethoscope, Moon, Sun, ArrowLeft, Sparkles, CalendarCheck2, MessagesSq
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/state/auth-state'
 import { useTheme } from '@/hooks/use-theme'
+import type { SignupRole } from '@/services'
 
-export function LoginPage() {
-  const { login } = useAuth()
+export function SignupPage() {
+  const { signUp } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [role, setRole] = useState<SignupRole>('receptionist')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim() || !password.trim()) {
-      toast.error('Enter an email and password to continue.')
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      toast.error('Fill in your name, email, and password to continue.')
+      return
+    }
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters.')
+      return
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match.')
       return
     }
     setSubmitting(true)
     try {
-      await login(email.trim(), password)
-      toast.success('Welcome back')
-      navigate('/')
+      const readyNow = await signUp(email.trim(), password, name.trim(), role)
+      if (readyNow) {
+        toast.success('Account created — awaiting admin approval')
+        navigate('/')
+      } else {
+        toast.success('Account created — check your email to confirm before signing in.')
+        navigate('/login')
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Sign in failed')
+      toast.error(err instanceof Error ? err.message : 'Sign up failed')
     } finally {
       setSubmitting(false)
     }
@@ -126,15 +144,25 @@ export function LoginPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <h2 className="text-xl font-semibold tracking-tight">Sign in</h2>
-              <p className="text-sm text-muted-foreground">Enter your clinic credentials to continue.</p>
+              <h2 className="text-xl font-semibold tracking-tight">Create an account</h2>
+              <p className="text-sm text-muted-foreground">Sign up with your clinic email to get started.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="signup-name">Full name</Label>
                 <Input
-                  id="login-email"
+                  id="signup-name"
+                  type="text"
+                  placeholder="Jamie Rivera"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input
+                  id="signup-email"
                   type="email"
                   placeholder="you@sunrisedental.clinic"
                   value={email}
@@ -142,29 +170,49 @@ export function LoginPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password">Password</Label>
-                  <span className="cursor-default text-xs text-muted-foreground hover:text-foreground">
-                    Forgot password?
-                  </span>
-                </div>
+                <Label htmlFor="signup-password">Password</Label>
                 <Input
-                  id="login-password"
+                  id="signup-password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="signup-confirm-password">Confirm password</Label>
+                <Input
+                  id="signup-confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="signup-role">I am a</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as SignupRole)}>
+                  <SelectTrigger id="signup-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  An admin reviews and approves every new account before it can sign in.
+                </p>
+              </div>
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Signing in…' : 'Sign in'}
+                {submitting ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-foreground hover:underline">
-                Sign up
+              Already have an account?{' '}
+              <Link to="/login" className="font-medium text-foreground hover:underline">
+                Sign in
               </Link>
             </p>
           </motion.div>
