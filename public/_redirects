@@ -1,0 +1,4 @@
+# Intentionally empty — SPA fallback is handled natively by wrangler.jsonc's
+# assets.not_found_handling: "single-page-application", so no redirect rules
+# are needed here. Kept as a placeholder to force Cloudflare to overwrite the
+# previously-cached (and invalid) rule from an earlier deploy attempt.
