@@ -40,8 +40,8 @@ export function ChatThread({
   let lastDate = ''
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-1 overflow-y-auto scrollbar-thin px-1 py-2">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto scrollbar-thin px-1 py-2">
         {!conversation || conversation.messages.length === 0 ? (
           <EmptyState
             icon={<MessageCircle className="h-5 w-5" />}

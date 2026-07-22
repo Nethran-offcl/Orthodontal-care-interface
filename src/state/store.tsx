@@ -99,6 +99,7 @@ interface ClinicStoreValue extends Store {
   updateStageStatus: (planId: string, stageId: string, status: TreatmentStageStatus) => Promise<void>
   addImage: (image: Omit<PatientImage, 'id' | 'storagePath'>, file: File) => Promise<PatientImage>
   sendMessage: (patientId: string, text: string) => Promise<void>
+  refreshConversations: () => Promise<void>
   markConversationRead: (patientId: string) => Promise<void>
   simulatePatientReply: (patientId: string, text: string) => Promise<void>
   assignConversation: (id: string, assigneeId: string) => Promise<void>
@@ -317,6 +318,11 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
     setStore((s) => ({ ...s, conversations }))
   }, [])
 
+  const refreshConversations = useCallback(async () => {
+    const conversations = await chatService.getAll()
+    setStore((s) => ({ ...s, conversations }))
+  }, [])
+
   const markConversationRead = useCallback(async (patientId: string) => {
     await chatService.markRead(patientId)
     const conversations = await chatService.getAll()
@@ -514,6 +520,7 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
       updateStageStatus,
       addImage,
       sendMessage,
+      refreshConversations,
       markConversationRead,
       simulatePatientReply,
       assignConversation,
@@ -552,6 +559,7 @@ export function ClinicStoreProvider({ children }: { children: React.ReactNode })
       updateStageStatus,
       addImage,
       sendMessage,
+      refreshConversations,
       markConversationRead,
       simulatePatientReply,
       assignConversation,

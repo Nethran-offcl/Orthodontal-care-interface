@@ -34,7 +34,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { ConversationStatusBadge } from '@/components/shared/status-badge'
 import { EscalateConversationDialog } from '@/pages/messaging/escalate-conversation-dialog'
 import { useClinicStore } from '@/state/store'
-import { aiService, pickRandomDemoAttachment } from '@/services'
+import { aiService, chatService, pickRandomDemoAttachment } from '@/services'
 import { buildPatientTimeline } from '@/lib/patient-timeline'
 import { cn, formatRelativeTime, formatDate } from '@/lib/utils'
 import type { ConversationChannel, ConversationStatus } from '@/types'
@@ -79,6 +79,7 @@ export function InboxPage() {
     doctors,
     staff,
     sendMessage,
+    refreshConversations,
     markConversationRead,
     assignConversation,
     updateConversationStatus,
@@ -118,6 +119,14 @@ export function InboxPage() {
     }
   }, [filtered, selectedId])
 
+  useEffect(() => {
+    if (!selectedId) return
+    const unsubscribe = chatService.subscribeToConversation(selectedId, () => {
+      refreshConversations()
+    })
+    return unsubscribe
+  }, [selectedId, refreshConversations])
+
   const selected = conversations.find((c) => c.id === selectedId)
   const selectedPatient = selected ? patients.find((p) => p.id === selected.patientId) : undefined
 
@@ -156,9 +165,9 @@ export function InboxPage() {
 
   return (
     <Card className="h-[calc(100vh-220px)] min-h-[560px] overflow-hidden">
-      <div className="grid h-full grid-cols-1 sm:grid-cols-[320px_1fr]">
+      <div className="grid h-full min-h-0 grid-cols-1 sm:grid-cols-[320px_1fr]">
         {/* Conversation list */}
-        <div className="flex flex-col border-r border-border">
+        <div className="flex min-h-0 flex-col border-r border-border">
           <div className="space-y-2.5 border-b border-border p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -255,7 +264,7 @@ export function InboxPage() {
         </div>
 
         {/* Detail panel */}
-        <div className="hidden flex-col overflow-hidden sm:flex">
+        <div className="hidden min-h-0 flex-col overflow-hidden sm:flex">
           {selected && selectedPatient ? (
             <>
               <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
@@ -325,7 +334,7 @@ export function InboxPage() {
                 </Popover>
               </div>
 
-              <Tabs value={detailTab} onValueChange={setDetailTab} className="flex flex-1 flex-col overflow-hidden">
+              <Tabs value={detailTab} onValueChange={setDetailTab} className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <TabsList className="mx-3 mt-2 w-fit">
                   <TabsTrigger value="chat">Conversation</TabsTrigger>
                   <TabsTrigger value="notes">
@@ -337,7 +346,7 @@ export function InboxPage() {
                   <TabsTrigger value="timeline">Patient timeline</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="chat" className="flex flex-1 flex-col overflow-hidden p-3">
+                <TabsContent value="chat" className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">
                   <div className="mb-2 flex justify-end gap-1.5">
                     <Button size="sm" variant="outline" onClick={handleAiReply}>
                       <Sparkles className="h-3.5 w-3.5" />

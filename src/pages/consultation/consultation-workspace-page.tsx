@@ -75,9 +75,22 @@ export function ConsultationWorkspacePage() {
     setStep(index)
   }
 
-  async function handleRecordingComplete() {
-    const result = await voiceService.generateStructuredChart(appointment!, patient!)
-    setGenerated(result)
+  async function handleRecordingComplete(transcript: string) {
+    try {
+      const structured = await voiceService.generateStructuredChart(transcript, {
+        appointmentReason: appointment!.reason,
+        patientName: patient!.name,
+      })
+      setGenerated({ transcript, structured })
+    } catch {
+      toast.error('Could not structure the chart entry', {
+        description: 'The transcript was captured — review and fill in the fields manually below.',
+      })
+      setGenerated({
+        transcript,
+        structured: { toothArea: '', diagnosis: '', procedure: '', notes: '', followUpDays: null, suggestedMedicines: [] },
+      })
+    }
     setMode('voice')
     unlock(1)
   }

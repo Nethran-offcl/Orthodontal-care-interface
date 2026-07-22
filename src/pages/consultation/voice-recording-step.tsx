@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Mic, PenLine, Square, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { voiceService } from '@/services'
 import { cn } from '@/lib/utils'
@@ -11,13 +12,16 @@ export function VoiceRecordingStep({
   onComplete,
   onManualEntry,
 }: {
-  patientFirstName: string
-  onComplete: () => void
-  onManualEntry: () => void
+  patientFirstName?: string
+  onComplete: (transcript: string) => void
+  onManualEntry?: () => void
 }) {
   const [status, setStatus] = useState<'idle' | 'recording' | 'transcribing'>('idle')
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   const barDelays = useMemo(() => Array.from({ length: BAR_COUNT }, () => Math.random() * 0.8), [])
 
@@ -32,15 +36,54 @@ export function VoiceRecordingStep({
     }
   }, [status])
 
-  function startRecording() {
-    setElapsed(0)
-    setStatus('recording')
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+    }
+  }, [])
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setElapsed(0)
+      setStatus('recording')
+    } catch {
+      toast.error('Microphone access denied', {
+        description: 'Allow microphone access to record, or type the entry manually.',
+      })
+    }
   }
 
   async function stopRecording() {
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
     setStatus('transcribing')
-    await voiceService.simulateTranscription()
-    onComplete()
+
+    const audioBlob = await new Promise<Blob>((resolve) => {
+      recorder.addEventListener('stop', () => resolve(new Blob(chunksRef.current, { type: recorder.mimeType })), {
+        once: true,
+      })
+      recorder.stop()
+    })
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+
+    try {
+      const transcript = await voiceService.transcribeAudio(audioBlob)
+      onComplete(transcript)
+    } catch {
+      toast.error('Transcription failed', {
+        description: 'Please try recording again, or type the entry manually.',
+      })
+      setStatus('idle')
+    }
   }
 
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0')
@@ -76,7 +119,11 @@ export function VoiceRecordingStep({
 
             <div>
               <p className="text-sm font-medium">
-                {status === 'recording' ? `Recording — ${mm}:${ss}` : `Ready to record ${patientFirstName}'s visit`}
+                {status === 'recording'
+                  ? `Recording — ${mm}:${ss}`
+                  : patientFirstName
+                    ? `Ready to record ${patientFirstName}'s visit`
+                    : 'Ready to record a voice note'}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {status === 'recording'
@@ -102,7 +149,7 @@ export function VoiceRecordingStep({
               ))}
             </div>
 
-            {status === 'idle' && (
+            {status === 'idle' && onManualEntry && (
               <button
                 onClick={onManualEntry}
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"

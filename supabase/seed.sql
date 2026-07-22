@@ -175,6 +175,67 @@ insert into public.message_templates (id, name, category, body, approval_status,
   ('TPL-7', 'Follow-up Reminder — Kannada', 'Reminder', '{{patient_name}} ಅವರೇ, {{doctor_name}} ಅವರೊಂದಿಗಿನ ನಿಮ್ಮ ಫಾಲೋ-ಅಪ್ ಭೇಟಿ {{date}} ರಂದು {{time}} ಗೆ ನಿಗದಿಯಾಗಿದೆ.', 'pending', 'Kannada', 0)
 on conflict (id) do nothing;
 
+-- Ported from src/mocks/conversations.ts. Same date-pinning caveat as earlier
+-- seeds (pinned as of 2026-07-14). chat_messages.id can't reuse the mock's
+-- per-conversation 'm1'/'m2' scheme as-is since it's now a single global table —
+-- prefixed with the conversation id to stay unique and traceable. Inserted
+-- before escalations below since escalations.conversation_id is now FK'd here.
+insert into public.conversations (id, patient_id, last_message_at, unread, sla_minutes, channel, status, assignee_id, priority) values
+  ('CV-9000', 'PT-1002', '2026-07-14T07:30:00+00:00', 0, 15, 'whatsapp', 'resolved', 'staff-priya', 'low'),
+  ('CV-9001', 'PT-1001', '2026-07-14T08:10:00+00:00', 0, 40, 'whatsapp', 'open', 'doc-rao', 'medium'),
+  ('CV-9002', 'PT-1009', '2026-07-14T07:05:00+00:00', 1, 155, 'whatsapp', 'pending', 'staff-priya', 'medium'),
+  ('CV-9003', 'PT-1012', '2026-07-14T09:50:00+00:00', 1, 22, 'whatsapp', 'resolved', 'staff-priya', 'low'),
+  ('CV-9004', 'PT-1011', '2026-07-11T15:30:00+00:00', 1, 610, 'whatsapp', 'waiting', 'staff-priya', 'high'),
+  ('CV-9005', 'PT-1007', '2026-07-13T20:15:00+00:00', 0, 12, 'instagram', 'open', 'doc-rao', 'medium'),
+  ('CV-9006', 'PT-1006', '2026-07-14T06:30:00+00:00', 0, 5, 'facebook', 'resolved', 'staff-priya', 'low'),
+  ('CV-9007', 'PT-1003', '2026-07-14T05:00:00+00:00', 0, 8, 'whatsapp', 'resolved', 'staff-priya', 'low')
+on conflict (id) do nothing;
+
+insert into public.chat_messages (id, conversation_id, sender, text, time, status) values
+  ('CV-9000-m1', 'CV-9000', 'clinic', 'Hi Anita, this is a reminder from Sunrise Dental that your 6-month cleaning with Dr. Menon is scheduled for today, at 10:30 AM. Please reply YES to confirm or call us to reschedule.', '2026-07-13T09:00:00+00:00', 'read'),
+  ('CV-9000-m2', 'CV-9000', 'patient', 'YES, see you then!', '2026-07-14T07:30:00+00:00', null),
+
+  ('CV-9001-m1', 'CV-9001', 'clinic', 'Hi Meera, this is a reminder from Sunrise Dental that your follow-up visit with Dr. Rao is scheduled for today, at 09:00 AM. Please reply YES to confirm or call us to reschedule.', '2026-07-13T18:00:00+00:00', 'read'),
+  ('CV-9001-m2', 'CV-9001', 'patient', 'YES', '2026-07-13T18:42:00+00:00', null),
+  ('CV-9001-m3', 'CV-9001', 'clinic', 'Thank you, Meera! Your appointment today at 09:00 AM is confirmed. We look forward to seeing you.', '2026-07-13T18:43:00+00:00', 'read'),
+  ('CV-9001-m4', 'CV-9001', 'patient', 'Is it normal for the tooth to feel a little sensitive to cold after the last sitting?', '2026-07-14T08:10:00+00:00', null),
+
+  ('CV-9002-m1', 'CV-9002', 'clinic', 'Hi Vikram, this is a reminder from Sunrise Dental that your follow-up visit with Dr. Rao is scheduled for tomorrow, at 10:00 AM. Please reply YES to confirm or call us to reschedule.', '2026-07-13T09:00:00+00:00', 'read'),
+  ('CV-9002-m2', 'CV-9002', 'patient', 'Can we push it to 11? I have a work call at 10.', '2026-07-14T07:05:00+00:00', null),
+
+  ('CV-9003-m1', 'CV-9003', 'clinic', 'Hi Sneha, this is a reminder from Sunrise Dental that your follow-up visit with Dr. Menon is scheduled for tomorrow, at 04:00 PM. Please reply YES to confirm or call us to reschedule.', '2026-07-13T09:00:00+00:00', 'read'),
+  ('CV-9003-m2', 'CV-9003', 'patient', 'Yes confirming, thank you!', '2026-07-14T09:50:00+00:00', null),
+
+  ('CV-9004-m1', 'CV-9004', 'clinic', 'Hi Ramesh, this is a reminder from Sunrise Dental that your follow-up visit with Dr. Rao is scheduled for tomorrow, at 02:00 PM. Please reply YES to confirm or call us to reschedule.', '2026-07-10T09:00:00+00:00', 'delivered'),
+  ('CV-9004-m2', 'CV-9004', 'clinic', 'Hi Ramesh, we missed you at your 2:00 PM appointment today. Please call us at your convenience to reschedule your periodontal maintenance visit.', '2026-07-11T15:30:00+00:00', 'delivered'),
+
+  ('CV-9005-m1', 'CV-9005', 'clinic', 'Hi Arjun, hope you''re recovering well after today''s extraction. Take the antibiotics as prescribed and avoid hard food for a few days.', '2026-07-13T19:00:00+00:00', 'read'),
+  ('CV-9005-m2', 'CV-9005', 'patient', 'Thank you doctor. There''s mild swelling on the cheek, is that expected?', '2026-07-13T20:03:00+00:00', null),
+  ('CV-9005-m3', 'CV-9005', 'clinic', 'Some mild swelling for the first 48 hours is normal — an ice pack for 15 minutes on/off will help. If it increases sharply or you get a fever, call us right away.', '2026-07-13T20:15:00+00:00', 'read'),
+
+  ('CV-9006-m1', 'CV-9006', 'clinic', 'Hi Divya, reminder that your ortho adjustment with Dr. Menon is scheduled for today at 03:30 PM. Reply YES to confirm.', '2026-07-13T09:00:00+00:00', 'read'),
+  ('CV-9006-m2', 'CV-9006', 'patient', 'Yes see you then', '2026-07-14T06:30:00+00:00', null),
+
+  ('CV-9007-m1', 'CV-9007', 'clinic', 'Hi Rohan, reminder that your implant placement (stage 1) with Dr. Rao is scheduled for today at 02:00 PM. Please arrive 10 minutes early and avoid a heavy meal beforehand.', '2026-07-13T09:00:00+00:00', 'read'),
+  ('CV-9007-m2', 'CV-9007', 'patient', 'Noted, will be there. Confirmed.', '2026-07-14T05:00:00+00:00', null)
+on conflict (id) do nothing;
+
+insert into public.internal_notes (id, conversation_id, author, text, time) values
+  ('IN-1', 'CV-9001', 'Dr. Arjun Rao', 'Mild sensitivity is expected post-obturation — replying with reassurance, will re-check at next visit.', '2026-07-14T08:20:00+00:00'),
+  ('IN-2', 'CV-9004', 'Priya Kulkarni', 'Called twice, no answer. Trying again tomorrow morning before escalating.', '2026-07-12T11:00:00+00:00')
+on conflict (id) do nothing;
+
+insert into public.attachments (id, conversation_id, name, kind, size_kb, time) values
+  ('AT-1', 'CV-9005', 'cheek-swelling.jpg', 'image', 842, '2026-07-13T20:03:00+00:00')
+on conflict (id) do nothing;
+
+-- Deferred from 0012_messaging.sql: escalations.conversation_id can only be FK'd now that
+-- conversations actually has rows (CV-9004, CV-9001, referenced by the escalations insert below).
+alter table public.escalations
+  drop constraint if exists escalations_conversation_id_fkey;
+alter table public.escalations
+  add constraint escalations_conversation_id_fkey foreign key (conversation_id) references public.conversations (id);
+
 insert into public.escalations (id, conversation_id, patient_id, reason, priority, assigned_role, assigned_to_id, status, created_at, created_by, comments, history) values
   ('ESC-1', 'CV-9004', 'PT-1011', 'No response to reminder or follow-up calls for periodontal maintenance visit — third missed contact attempt.', 'high', 'receptionist', 'staff-priya', 'in-progress', '2026-07-12T11:05:00+00:00', 'Priya Kulkarni',
     '[{"id":"ECM-1","author":"Priya Kulkarni","text":"Tried calling twice, both unanswered. Will try again tomorrow morning before marking as lost.","time":"2026-07-12T11:10:00+00:00"}]'::jsonb,
