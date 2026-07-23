@@ -112,20 +112,26 @@ export function ConsultationWorkspacePage() {
   }
 
   async function handleChartConfirm(structured: StructuredChart) {
-    const entry = await addChartEntry({
-      patientId: patient!.id,
-      date: daysFromToday(0),
-      doctorId: appointment!.doctorId,
-      toothArea: structured.toothArea,
-      diagnosis: structured.diagnosis,
-      procedure: structured.procedure,
-      notes: structured.notes,
-      source: mode,
-      transcript: mode === 'voice' ? generated?.transcript : undefined,
-    })
-    setChartEntryId(entry.id)
-    toast.success('Chart entry saved')
-    unlock(2)
+    try {
+      const entry = await addChartEntry({
+        patientId: patient!.id,
+        date: daysFromToday(0),
+        doctorId: appointment!.doctorId,
+        toothArea: structured.toothArea,
+        diagnosis: structured.diagnosis,
+        procedure: structured.procedure,
+        notes: structured.notes,
+        source: mode,
+        transcript: mode === 'voice' ? generated?.transcript : undefined,
+      })
+      setChartEntryId(entry.id)
+      toast.success('Chart entry saved')
+      unlock(2)
+    } catch (err) {
+      toast.error('Could not save this chart entry', {
+        description: err instanceof Error ? err.message : 'Check that your account has permission to write to this patient’s chart.',
+      })
+    }
   }
 
   function handlePrescriptionSave(medicines: { name: string; dosage: string; frequency: string; duration: string }[], notes: string) {

@@ -9,13 +9,16 @@ import { StageStatusBadge } from '@/components/shared/status-badge'
 import { EmptyState } from '@/components/shared/empty-state'
 import { NewTreatmentPlanDialog } from '@/pages/patients/new-treatment-plan-dialog'
 import { AddStageDialog } from '@/pages/patients/add-stage-dialog'
+import { useAuth } from '@/state/auth-state'
 import { useClinicStore } from '@/state/store'
 import { aiService } from '@/services'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { TreatmentPlan } from '@/types'
 
 export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plans: TreatmentPlan[] }) {
-  const { updateStageStatus, patients } = useClinicStore()
+  const { role, userId } = useAuth()
+  const { updateStageStatus, doctors, patients } = useClinicStore()
+  const canCreatePlan = role === 'admin' || role === 'doctor'
   const [newPlanOpen, setNewPlanOpen] = useState(false)
   const [addStagePlanId, setAddStagePlanId] = useState<string | null>(null)
   const [summaries, setSummaries] = useState<Record<string, string>>({})
@@ -35,11 +38,18 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
         <p className="text-sm text-muted-foreground">
           Drives follow-up reminders automatically — no manual tracking needed.
         </p>
-        <Button size="sm" onClick={() => setNewPlanOpen(true)}>
-          <ClipboardPlus className="h-4 w-4" />
-          New treatment plan
-        </Button>
+        {canCreatePlan && (
+          <Button size="sm" onClick={() => setNewPlanOpen(true)}>
+            <ClipboardPlus className="h-4 w-4" />
+            New treatment plan
+          </Button>
+        )}
       </div>
+      {!canCreatePlan && (
+        <p className="mb-4 -mt-2 text-xs text-muted-foreground">
+          Only a doctor or admin can create or update treatment plans.
+        </p>
+      )}
 
       {sorted.length === 0 ? (
         <EmptyState
@@ -53,6 +63,8 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
             const total = plan.stages.reduce((s, st) => s + st.cost, 0)
             const completed = plan.stages.filter((s) => s.status === 'completed').length
             const pct = Math.round((completed / plan.stages.length) * 100)
+            const canWrite = role === 'admin' || (role === 'doctor' && userId === plan.createdByDoctorId)
+            const creator = doctors.find((d) => d.id === plan.createdByDoctorId)
 
             return (
               <Card key={plan.id}>
@@ -101,14 +113,18 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <StageStatusBadge status={stage.status} />
-                          {stage.status !== 'completed' && (
+                          {stage.status !== 'completed' && canWrite && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
+                              onClick={async () => {
                                 const next = stage.status === 'planned' ? 'in-progress' : 'completed'
-                                updateStageStatus(plan.id, stage.id, next)
-                                toast.success(next === 'completed' ? 'Stage marked complete' : 'Stage marked in progress')
+                                try {
+                                  await updateStageStatus(plan.id, stage.id, next)
+                                  toast.success(next === 'completed' ? 'Stage marked complete' : 'Stage marked in progress')
+                                } catch {
+                                  toast.error('Could not update the stage', { description: 'Please try again.' })
+                                }
                               }}
                             >
                               {stage.status === 'planned' ? 'Start' : 'Complete'}
@@ -118,10 +134,16 @@ export function TreatmentPlanTab({ patientId, plans }: { patientId: string; plan
                       </div>
                     ))}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setAddStagePlanId(plan.id)}>
-                    <Plus className="h-3.5 w-3.5" />
-                    Add stage
-                  </Button>
+                  {canWrite ? (
+                    <Button variant="ghost" size="sm" onClick={() => setAddStagePlanId(plan.id)}>
+                      <Plus className="h-3.5 w-3.5" />
+                      Add stage
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Created by {creator?.name ?? 'another doctor'} — only they or an admin can add or update stages.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )

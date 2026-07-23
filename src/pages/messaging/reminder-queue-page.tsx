@@ -60,17 +60,21 @@ export function ReminderQueuePage() {
     setDrafts((d) => ({ ...d, [id]: text }))
   }
 
-  function sendReminderNow(id: string, patientId: string, appointmentId: string) {
+  async function sendReminderNow(id: string, patientId: string, appointmentId: string) {
     const text = drafts[id] || defaultMessage(patientId, appointmentId)
     if (!text) return
-    sendMessage(patientId, text)
-    updateReminderStatus(id, 'sent')
-    toast.success('Reminder sent via WhatsApp')
-    setDrafts((d) => {
-      const next = { ...d }
-      delete next[id]
-      return next
-    })
+    try {
+      await sendMessage(patientId, text)
+      await updateReminderStatus(id, 'sent')
+      toast.success('Reminder sent via WhatsApp')
+      setDrafts((d) => {
+        const next = { ...d }
+        delete next[id]
+        return next
+      })
+    } catch {
+      toast.error('Could not send the reminder', { description: 'Please try again.' })
+    }
   }
 
   return (

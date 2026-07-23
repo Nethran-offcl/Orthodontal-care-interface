@@ -34,16 +34,20 @@ export function AddStageDialog({
     setCost('')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!label) {
       toast.error('Describe the stage.')
       return
     }
-    addTreatmentStage(planId, { label, targetDate, status: 'planned', cost: Number(cost) || 0 })
-    toast.success('Stage added to treatment plan')
-    onOpenChange(false)
-    reset()
+    try {
+      await addTreatmentStage(planId, { label, targetDate, status: 'planned', cost: Number(cost) || 0 })
+      toast.success('Stage added to treatment plan')
+      onOpenChange(false)
+      reset()
+    } catch {
+      toast.error('Could not add the stage', { description: 'Please try again.' })
+    }
   }
 
   return (

@@ -34,18 +34,22 @@ export function NewTemplateDialog({ open, onOpenChange }: { open: boolean; onOpe
     setBody('')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name || !body) {
       toast.error('Add a name and message body.')
       return
     }
-    addTemplate({ name, category, language, body })
-    toast.success('Template submitted for Meta approval', {
-      description: 'New WhatsApp templates must be pre-approved before use.',
-    })
-    onOpenChange(false)
-    reset()
+    try {
+      await addTemplate({ name, category, language, body })
+      toast.success('Template submitted for Meta approval', {
+        description: 'New WhatsApp templates must be pre-approved before use.',
+      })
+      onOpenChange(false)
+      reset()
+    } catch {
+      toast.error('Could not submit the template', { description: 'Please try again.' })
+    }
   }
 
   return (

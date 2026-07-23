@@ -66,25 +66,29 @@ export function EscalateConversationDialog({
     setAssignedToId(assigneesForRole(next, doctors, staff)[0]?.id ?? '')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!reason.trim()) {
       toast.error('Add a reason for the escalation.')
       return
     }
-    createEscalation({
-      conversationId,
-      patientId,
-      reason,
-      priority,
-      assignedRole,
-      assignedToId,
-      createdBy: currentActorName(role, userId, doctors, staff),
-    })
-    toast.success('Escalation created', { description: 'Visible in Messaging → Escalations.' })
-    onOpenChange(false)
-    reset()
-    navigate('/messaging/escalations')
+    try {
+      await createEscalation({
+        conversationId,
+        patientId,
+        reason,
+        priority,
+        assignedRole,
+        assignedToId,
+        createdBy: currentActorName(role, userId, doctors, staff),
+      })
+      toast.success('Escalation created', { description: 'Visible in Messaging → Escalations.' })
+      onOpenChange(false)
+      reset()
+      navigate('/messaging/escalations')
+    } catch {
+      toast.error('Could not create the escalation', { description: 'Please try again.' })
+    }
   }
 
   return (

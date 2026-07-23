@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { AppointmentStatusBadge } from '@/components/shared/status-badge'
 import { useClinicStore } from '@/state/store'
+import { useAuth } from '@/state/auth-state'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 export function AppointmentDetailSheet({
@@ -30,6 +31,7 @@ export function AppointmentDetailSheet({
 }) {
   const { appointments, patients, doctors, invoices, updateAppointmentStatus, rescheduleAppointment, sendMessage } =
     useClinicStore()
+  const { role, userId } = useAuth()
   const navigate = useNavigate()
   const [rescheduling, setRescheduling] = useState(false)
   const [date, setDate] = useState('')
@@ -58,7 +60,9 @@ export function AppointmentDetailSheet({
     )
   }
 
-  const canStart = appointment.status === 'confirmed' || appointment.status === 'checked-in'
+  const isStartableStatus = appointment.status === 'confirmed' || appointment.status === 'checked-in'
+  const canWrite = role === 'admin' || (role === 'doctor' && appointment.doctorId === userId)
+  const canStart = isStartableStatus && canWrite
   const isOpenEnded = appointment.status !== 'completed' && appointment.status !== 'cancelled' && appointment.status !== 'no-show'
 
   function saveReschedule() {
@@ -150,6 +154,12 @@ export function AppointmentDetailSheet({
                 <Mic className="h-4 w-4" />
                 Start consultation
               </Button>
+            )}
+
+            {isStartableStatus && !canWrite && (
+              <p className="text-xs text-muted-foreground">
+                Assigned to {doctor?.name ?? 'another doctor'} — only they or an admin can start this consultation.
+              </p>
             )}
 
             {appointment.status === 'pending' && (

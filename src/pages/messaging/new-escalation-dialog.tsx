@@ -56,23 +56,27 @@ export function NewEscalationDialog({ open, onOpenChange }: { open: boolean; onO
     setAssignedToId(assigneesForRole(next, doctors, staff)[0]?.id ?? '')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!patientId || !reason.trim()) {
       toast.error('Pick a patient and add a reason.')
       return
     }
-    createEscalation({
-      patientId,
-      reason,
-      priority,
-      assignedRole,
-      assignedToId,
-      createdBy: currentActorName(role, userId, doctors, staff),
-    })
-    toast.success('Escalation created')
-    onOpenChange(false)
-    reset()
+    try {
+      await createEscalation({
+        patientId,
+        reason,
+        priority,
+        assignedRole,
+        assignedToId,
+        createdBy: currentActorName(role, userId, doctors, staff),
+      })
+      toast.success('Escalation created')
+      onOpenChange(false)
+      reset()
+    } catch {
+      toast.error('Could not create the escalation', { description: 'Please try again.' })
+    }
   }
 
   return (

@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/app-shell'
 import { useAuth } from '@/state/auth-state'
 import { LandingPage } from '@/pages/marketing/landing-page'
@@ -36,6 +36,12 @@ import { AdminAnalyticsPage } from '@/pages/admin/analytics-page'
 import { AdminAuditLogsPage } from '@/pages/admin/audit-logs-page'
 import { AdminAiSettingsPage } from '@/pages/admin/ai-settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
+
+function RequireAdmin() {
+  const { role } = useAuth()
+  if (role !== 'admin') return <Navigate to="/" replace />
+  return <Outlet />
+}
 
 function App() {
   const { isAuthenticated, isPending } = useAuth()
@@ -90,13 +96,15 @@ function App() {
         <Route path="ai-receptionist" element={<AiReceptionistPage />} />
         <Route path="image-upload" element={<ImageUploadPage />} />
 
-        <Route path="admin/doctors" element={<AdminDoctorsPage />} />
-        <Route path="admin/receptionists" element={<AdminReceptionistsPage />} />
-        <Route path="admin/users" element={<AdminUsersPage />} />
-        <Route path="admin/roles" element={<AdminRolesPage />} />
-        <Route path="admin/analytics" element={<AdminAnalyticsPage />} />
-        <Route path="admin/audit-logs" element={<AdminAuditLogsPage />} />
-        <Route path="admin/ai-settings" element={<AdminAiSettingsPage />} />
+        <Route path="admin" element={<RequireAdmin />}>
+          <Route path="doctors" element={<AdminDoctorsPage />} />
+          <Route path="receptionists" element={<AdminReceptionistsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="roles" element={<AdminRolesPage />} />
+          <Route path="analytics" element={<AdminAnalyticsPage />} />
+          <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+          <Route path="ai-settings" element={<AdminAiSettingsPage />} />
+        </Route>
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>

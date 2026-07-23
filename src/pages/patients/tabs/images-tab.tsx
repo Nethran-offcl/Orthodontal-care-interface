@@ -166,12 +166,16 @@ export function ImagesTab({ patientId, images }: { patientId: string; images: Pa
     setPendingSpot({ xPct, yPct })
   }
 
-  function saveAnnotation() {
+  async function saveAnnotation() {
     if (!selected || !pendingSpot || !noteInput.trim()) return
-    addImageAnnotation(selected.id, { xPct: pendingSpot.xPct, yPct: pendingSpot.yPct, note: noteInput.trim() })
-    setPendingSpot(null)
-    setNoteInput('')
-    toast.success('Annotation added')
+    try {
+      await addImageAnnotation(selected.id, { xPct: pendingSpot.xPct, yPct: pendingSpot.yPct, note: noteInput.trim() })
+      setPendingSpot(null)
+      setNoteInput('')
+      toast.success('Annotation added')
+    } catch {
+      toast.error('Could not save the annotation', { description: 'Please try again.' })
+    }
   }
 
   const compareImages = compareIds.map((id) => images.find((i) => i.id === id)).filter(Boolean) as PatientImage[]

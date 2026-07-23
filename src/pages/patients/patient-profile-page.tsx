@@ -21,6 +21,7 @@ import { InvoicesTab } from '@/pages/patients/tabs/invoices-tab'
 import { CommunicationLogTab } from '@/pages/patients/tabs/communication-log-tab'
 import { AiSummaryTab } from '@/pages/patients/tabs/ai-summary-tab'
 import { useClinicStore } from '@/state/store'
+import { useAuth } from '@/state/auth-state'
 import { formatCurrency } from '@/lib/utils'
 
 export function PatientProfilePage() {
@@ -37,6 +38,7 @@ export function PatientProfilePage() {
     invoices,
     conversations,
   } = useClinicStore()
+  const { role, userId } = useAuth()
 
   const [editOpen, setEditOpen] = useState(false)
   const [bookOpen, setBookOpen] = useState(false)
@@ -59,7 +61,9 @@ export function PatientProfilePage() {
   const conversation = conversations.find((c) => c.patientId === patient.id)
 
   const activeAppointment = myAppointments.find(
-    (a) => a.status === 'confirmed' || a.status === 'checked-in',
+    (a) =>
+      (a.status === 'confirmed' || a.status === 'checked-in') &&
+      (role === 'admin' || (role === 'doctor' && a.doctorId === userId)),
   )
 
   const tab = searchParams.get('tab') ?? 'overview'

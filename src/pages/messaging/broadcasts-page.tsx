@@ -40,16 +40,38 @@ export function BroadcastsPage() {
 
   const sorted = [...broadcasts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
-  function handleReject() {
+  async function handleReject() {
     if (!rejecting) return
     if (!reason.trim()) {
       toast.error('Add a short note so the front desk knows why.')
       return
     }
-    rejectBroadcast(rejecting.id, reason)
-    toast('Broadcast rejected')
-    setRejecting(null)
-    setReason('')
+    try {
+      await rejectBroadcast(rejecting.id, reason)
+      toast('Broadcast rejected')
+      setRejecting(null)
+      setReason('')
+    } catch {
+      toast.error('Could not reject the broadcast', { description: 'Please try again.' })
+    }
+  }
+
+  async function handleApprove(id: string) {
+    try {
+      await approveBroadcast(id)
+      toast.success('Broadcast approved')
+    } catch {
+      toast.error('Could not approve the broadcast', { description: 'Please try again.' })
+    }
+  }
+
+  async function handleSendNow(id: string) {
+    try {
+      await sendBroadcastNow(id)
+      toast.success('Broadcast sent')
+    } catch {
+      toast.error('Could not send the broadcast', { description: 'Please try again.' })
+    }
   }
 
   return (
@@ -100,7 +122,7 @@ export function BroadcastsPage() {
                 <div className="flex flex-wrap gap-2">
                   {bc.status === 'pending-approval' && role === 'doctor' && (
                     <>
-                      <Button size="sm" onClick={() => { approveBroadcast(bc.id); toast.success('Broadcast approved') }}>
+                      <Button size="sm" onClick={() => handleApprove(bc.id)}>
                         <Check className="h-3.5 w-3.5" />
                         Approve
                       </Button>
@@ -114,7 +136,7 @@ export function BroadcastsPage() {
                     <p className="text-xs text-muted-foreground">Waiting for doctor review before it can send.</p>
                   )}
                   {bc.status === 'approved' && role !== 'doctor' && (
-                    <Button size="sm" onClick={() => { sendBroadcastNow(bc.id); toast.success('Broadcast sent') }}>
+                    <Button size="sm" onClick={() => handleSendNow(bc.id)}>
                       <Send className="h-3.5 w-3.5" />
                       Send now
                     </Button>

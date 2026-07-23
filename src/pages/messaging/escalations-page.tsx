@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { ArrowUpCircle, History, MessageSquare, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,11 +32,23 @@ export function EscalationsPage() {
   const sorted = [...escalations].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const actor = currentActorName(role, userId, doctors, staff)
 
-  function submitComment(id: string) {
+  async function submitComment(id: string) {
     const text = (commentDrafts[id] ?? '').trim()
     if (!text) return
-    addEscalationComment(id, actor, text)
-    setCommentDrafts((d) => ({ ...d, [id]: '' }))
+    try {
+      await addEscalationComment(id, actor, text)
+      setCommentDrafts((d) => ({ ...d, [id]: '' }))
+    } catch {
+      toast.error('Could not add the comment', { description: 'Please try again.' })
+    }
+  }
+
+  async function changeStatus(id: string, status: EscalationStatus) {
+    try {
+      await updateEscalationStatus(id, status, actor)
+    } catch {
+      toast.error('Could not update the escalation', { description: 'Please try again.' })
+    }
   }
 
   return (
@@ -81,7 +94,7 @@ export function EscalationsPage() {
                         key={s}
                         size="sm"
                         variant={esc.status === s ? 'default' : 'outline'}
-                        onClick={() => updateEscalationStatus(esc.id, s, actor)}
+                        onClick={() => changeStatus(esc.id, s)}
                         disabled={esc.status === s}
                       >
                         Mark {s.replace('-', ' ')}

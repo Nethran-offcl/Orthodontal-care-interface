@@ -40,21 +40,25 @@ export function BroadcastComposerDialog({ open, onOpenChange }: { open: boolean;
       return
     }
     const chosen = audiences.find((a) => a.value === audience)!
-    const bc = await createBroadcast({
-      title,
-      message,
-      audience,
-      audienceCount: chosen.count,
-      createdBy: 'Priya Kulkarni',
-    })
-    if (sendForApproval) {
-      submitBroadcastForApproval(bc.id)
-      toast.success('Sent for doctor approval')
-    } else {
-      toast.success('Saved as draft')
+    try {
+      const bc = await createBroadcast({
+        title,
+        message,
+        audience,
+        audienceCount: chosen.count,
+        createdBy: 'Priya Kulkarni',
+      })
+      if (sendForApproval) {
+        await submitBroadcastForApproval(bc.id)
+        toast.success('Sent for doctor approval')
+      } else {
+        toast.success('Saved as draft')
+      }
+      onOpenChange(false)
+      reset()
+    } catch {
+      toast.error('Could not save the broadcast', { description: 'Please try again.' })
     }
-    onOpenChange(false)
-    reset()
   }
 
   return (

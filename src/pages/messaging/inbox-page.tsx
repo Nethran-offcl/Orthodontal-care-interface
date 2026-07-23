@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpCircle,
@@ -145,15 +146,51 @@ export function InboxPage() {
     setSummary(await aiService.summarizeConversation(selected, selectedPatient.name))
   }
 
-  function handleAddNote() {
+  async function handleAddNote() {
     if (!selected || !noteText.trim()) return
-    addInternalNote(selected.id, 'Priya Kulkarni', noteText.trim())
-    setNoteText('')
+    try {
+      await addInternalNote(selected.id, 'Priya Kulkarni', noteText.trim())
+      setNoteText('')
+    } catch {
+      toast.error('Could not add the note', { description: 'Please try again.' })
+    }
   }
 
-  function handleAttach() {
+  async function handleAttach() {
     if (!selected) return
-    addAttachment(selected.id, pickRandomDemoAttachment())
+    try {
+      await addAttachment(selected.id, pickRandomDemoAttachment())
+    } catch {
+      toast.error('Could not add the attachment', { description: 'Please try again.' })
+    }
+  }
+
+  async function handleStatusChange(status: ConversationStatus) {
+    if (!selected) return
+    try {
+      await updateConversationStatus(selected.id, status)
+    } catch {
+      toast.error('Could not update the conversation status', { description: 'Please try again.' })
+    }
+  }
+
+  async function handleAssign(assigneeId: string) {
+    if (!selected) return
+    try {
+      await assignConversation(selected.id, assigneeId)
+    } catch {
+      toast.error('Could not assign the conversation', { description: 'Please try again.' })
+    }
+  }
+
+  async function handleSend(text: string) {
+    if (!selectedPatient) return
+    try {
+      await sendMessage(selectedPatient.id, text)
+      setDraft('')
+    } catch {
+      toast.error('Could not send the message', { description: 'Please try again.' })
+    }
   }
 
   const allAssignees = [
@@ -277,7 +314,7 @@ export function InboxPage() {
                     {selectedPatient.phone} · {channelMeta[selected.channel].label}
                   </p>
                 </div>
-                <Select value={selected.status} onValueChange={(v) => updateConversationStatus(selected.id, v as ConversationStatus)}>
+                <Select value={selected.status} onValueChange={(v) => handleStatusChange(v as ConversationStatus)}>
                   <SelectTrigger className="h-8 w-32 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -299,7 +336,7 @@ export function InboxPage() {
                     <DropdownMenuLabel>Assign to</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {allAssignees.map((a) => (
-                      <DropdownMenuItem key={a.id} onSelect={() => assignConversation(selected.id, a.id)}>
+                      <DropdownMenuItem key={a.id} onSelect={() => handleAssign(a.id)}>
                         {a.name}
                         <span className="ml-auto text-xs text-muted-foreground">{a.role}</span>
                       </DropdownMenuItem>
@@ -359,10 +396,7 @@ export function InboxPage() {
                   </div>
                   <ChatThread
                     conversation={selected}
-                    onSend={(text) => {
-                      sendMessage(selectedPatient.id, text)
-                      setDraft('')
-                    }}
+                    onSend={handleSend}
                     draft={draft}
                     onDraftChange={setDraft}
                   />

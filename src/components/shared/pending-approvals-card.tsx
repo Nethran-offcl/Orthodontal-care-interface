@@ -6,11 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { EmptyState } from '@/components/shared/empty-state'
-import { profilesService, type PendingProfile, type SignupRole } from '@/services'
+import { profilesService, doctorsService, type PendingProfile, type SignupRole } from '@/services'
+import type { Doctor } from '@/types'
 
 export function PendingApprovalsCard() {
   const [pending, setPending] = useState<PendingProfile[] | null>(null)
   const [roleChoice, setRoleChoice] = useState<Record<string, SignupRole>>({})
+  const [doctorChoice, setDoctorChoice] = useState<Record<string, string>>({})
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,15 +30,24 @@ export function PendingApprovalsCard() {
         setPending([])
         toast.error(err instanceof Error ? err.message : 'Could not load pending approvals')
       })
+    doctorsService.getAll().then((rows) => {
+      if (alive) setDoctors(rows)
+    })
     return () => {
       alive = false
     }
   }, [])
 
   async function approve(id: string) {
+    const role = roleChoice[id] ?? 'receptionist'
+    const doctorId = doctorChoice[id]
+    if (role === 'doctor' && !doctorId) {
+      toast.error('Pick which doctor this account belongs to before approving')
+      return
+    }
     setBusyId(id)
     try {
-      await profilesService.approve(id, roleChoice[id] ?? 'receptionist')
+      await profilesService.approve(id, role, doctorId)
       setPending((rows) => rows?.filter((r) => r.id !== id) ?? rows)
       toast.success('Account approved')
     } catch (err) {
@@ -92,6 +104,23 @@ export function PendingApprovalsCard() {
                   <SelectItem value="doctor">Doctor</SelectItem>
                 </SelectContent>
               </Select>
+              {(roleChoice[p.id] ?? 'receptionist') === 'doctor' && (
+                <Select
+                  value={doctorChoice[p.id] ?? ''}
+                  onValueChange={(v) => setDoctorChoice((c) => ({ ...c, [p.id]: v }))}
+                >
+                  <SelectTrigger className="h-8 w-[160px]">
+                    <SelectValue placeholder="Link to doctor…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" disabled={busyId === p.id} onClick={() => approve(p.id)} aria-label="Approve">
                 <Check className="h-4 w-4" />
               </Button>

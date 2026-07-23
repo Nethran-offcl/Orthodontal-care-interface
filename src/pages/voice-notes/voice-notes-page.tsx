@@ -26,7 +26,7 @@ const emptyStructured: StructuredChart = {
 }
 
 export function VoiceNotesPage() {
-  const { userId } = useAuth()
+  const { role, userId } = useAuth()
   const { patients, addChartEntry } = useClinicStore()
   const navigate = useNavigate()
 
@@ -56,30 +56,47 @@ export function VoiceNotesPage() {
   }
 
   async function handleConfirm(finalStructured: StructuredChart) {
-    if (patientId) {
-      await addChartEntry({
-        patientId,
-        date: daysFromToday(0),
-        doctorId: userId ?? '',
-        toothArea: finalStructured.toothArea,
-        diagnosis: finalStructured.diagnosis,
-        procedure: finalStructured.procedure,
-        notes: finalStructured.notes,
-        source: 'voice',
-        transcript,
-      })
-      toast.success('Voice note saved to chart')
-      navigate(`/patients/${patientId}?tab=chart`)
-      return
-    }
+    try {
+      if (patientId) {
+        await addChartEntry({
+          patientId,
+          date: daysFromToday(0),
+          doctorId: userId ?? '',
+          toothArea: finalStructured.toothArea,
+          diagnosis: finalStructured.diagnosis,
+          procedure: finalStructured.procedure,
+          notes: finalStructured.notes,
+          source: 'voice',
+          transcript,
+        })
+        toast.success('Voice note saved to chart')
+        navigate(`/patients/${patientId}?tab=chart`)
+        return
+      }
 
-    const saved = await voiceNotesService.create(userId ?? '', transcript, finalStructured)
-    setPersonalNotes((prev) => [saved, ...prev])
-    toast.success('Voice note saved', { description: "Kept as your personal note — it isn't attached to any patient." })
-    setStep('record')
-    setTranscript('')
-    setStructured(emptyStructured)
-    setPatientId('')
+      const saved = await voiceNotesService.create(userId ?? '', transcript, finalStructured)
+      setPersonalNotes((prev) => [saved, ...prev])
+      toast.success('Voice note saved', { description: "Kept as your personal note — it isn't attached to any patient." })
+      setStep('record')
+      setTranscript('')
+      setStructured(emptyStructured)
+      setPatientId('')
+    } catch {
+      toast.error('Could not save the voice note', { description: 'Please try again.' })
+    }
+  }
+
+  if (role !== 'doctor') {
+    return (
+      <div>
+        <PageHeader title="Voice Notes" description="Only doctors have personal voice notes." />
+        <EmptyState
+          icon={<Mic className="h-5 w-5" />}
+          title="Not available for your role"
+          description="Voice notes are saved against the doctor recording them — sign in as a doctor to use this page."
+        />
+      </div>
+    )
   }
 
   return (

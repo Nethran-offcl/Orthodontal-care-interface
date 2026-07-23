@@ -43,31 +43,35 @@ export function NewTreatmentPlanDialog({
     setCost('')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title || !firstStage) {
       toast.error('Add a plan title and its first stage.')
       return
     }
-    addTreatmentPlan({
-      patientId,
-      title,
-      createdOn: daysFromToday(0),
-      createdByDoctorId: doctorId,
-      status: 'active',
-      stages: [
-        {
-          id: 'seed',
-          label: firstStage,
-          targetDate,
-          status: 'planned',
-          cost: Number(cost) || 0,
-        },
-      ],
-    })
-    toast.success('Treatment plan created')
-    onOpenChange(false)
-    reset()
+    try {
+      await addTreatmentPlan({
+        patientId,
+        title,
+        createdOn: daysFromToday(0),
+        createdByDoctorId: doctorId,
+        status: 'active',
+        stages: [
+          {
+            id: 'seed',
+            label: firstStage,
+            targetDate,
+            status: 'planned',
+            cost: Number(cost) || 0,
+          },
+        ],
+      })
+      toast.success('Treatment plan created')
+      onOpenChange(false)
+      reset()
+    } catch {
+      toast.error('Could not create the treatment plan', { description: 'Please try again.' })
+    }
   }
 
   return (
@@ -89,7 +93,7 @@ export function NewTreatmentPlanDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Doctor</Label>
-            <Select value={doctorId} onValueChange={setDoctorId}>
+            <Select value={doctorId} onValueChange={setDoctorId} disabled={role === 'doctor'}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

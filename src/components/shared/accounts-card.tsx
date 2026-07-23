@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Users, Ban, RotateCcw } from 'lucide-react'
+import { Users, Ban, RotateCcw, TriangleAlert } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PatientAvatar } from '@/components/shared/patient-avatar'
 import { RoleBadge } from '@/components/shared/role-badge'
 import { EmptyState } from '@/components/shared/empty-state'
-import { profilesService, type ProfileSummary } from '@/services'
-import type { Role } from '@/types'
+import { profilesService, doctorsService, type ProfileSummary } from '@/services'
+import type { Doctor, Role } from '@/types'
 
 const roleBadgeKey: Record<Role, 'doctor' | 'reception' | 'admin'> = {
   doctor: 'doctor',
@@ -24,6 +25,7 @@ const roleLabels: Record<Role, string> = {
 
 export function AccountsCard() {
   const [accounts, setAccounts] = useState<ProfileSummary[] | null>(null)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -38,10 +40,26 @@ export function AccountsCard() {
         setAccounts([])
         toast.error(err instanceof Error ? err.message : 'Could not load accounts')
       })
+    doctorsService.getAll().then((rows) => {
+      if (alive) setDoctors(rows)
+    })
     return () => {
       alive = false
     }
   }, [])
+
+  async function linkDoctor(accountId: string, doctorId: string) {
+    setBusyId(accountId)
+    try {
+      await profilesService.linkDoctor(accountId, doctorId)
+      setAccounts((rows) => rows?.map((r) => (r.id === accountId ? { ...r, doctorId } : r)) ?? rows)
+      toast.success('Doctor linked — this account can now save clinical records')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not link this account to a doctor')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   async function toggleActive(account: ProfileSummary) {
     setBusyId(account.id)
@@ -81,6 +99,26 @@ export function AccountsCard() {
                 <p className="truncate text-xs text-muted-foreground">{a.email}</p>
               </div>
               <RoleBadge role={roleBadgeKey[a.role]} label={roleLabels[a.role]} />
+              {a.role === 'doctor' && !a.doctorId && (
+                <>
+                  <Badge variant="destructive" className="gap-1">
+                    <TriangleAlert className="h-3 w-3" />
+                    Not linked
+                  </Badge>
+                  <Select value="" onValueChange={(v) => linkDoctor(a.id, v)}>
+                    <SelectTrigger className="h-8 w-[160px]" disabled={busyId === a.id}>
+                      <SelectValue placeholder="Link to doctor…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
               {a.status === 'rejected' && <Badge variant="destructive">Revoked</Badge>}
               <Button
                 size="icon"

@@ -77,26 +77,9 @@ export function NewAppointmentDialog({
         toast.error('Enter name, phone, and age to register the patient.')
         return
       }
-      const created = await addPatient({
-        name: newName,
-        phone: newPhone,
-        age: Number(newAge),
-        gender: 'Other',
-        address: '',
-        leadSource: 'Walk-in' as LeadSource,
-        registeredOn: daysFromToday(0),
-        allergies: [],
-        marketingConsent: false,
-        profileCompleteness: 40,
-        balanceDue: 0,
-        totalBilled: 0,
-        primaryDoctorId: doctorId,
-      })
-      finalPatientId = created.id
-      patientName = created.name
     }
 
-    if (!finalPatientId) {
+    if (mode === 'existing' && !patientId) {
       toast.error('Select a patient to continue.')
       return
     }
@@ -105,30 +88,54 @@ export function NewAppointmentDialog({
       return
     }
 
-    const appt = await addAppointment({
-      patientId: finalPatientId,
-      doctorId,
-      date,
-      startTime: time,
-      durationMin: duration,
-      status: 'confirmed',
-      reason,
-      isFollowUp,
-    })
+    try {
+      if (mode === 'new') {
+        const created = await addPatient({
+          name: newName,
+          phone: newPhone,
+          age: Number(newAge),
+          gender: 'Other',
+          address: '',
+          leadSource: 'Walk-in' as LeadSource,
+          registeredOn: daysFromToday(0),
+          allergies: [],
+          marketingConsent: false,
+          profileCompleteness: 40,
+          balanceDue: 0,
+          totalBilled: 0,
+          primaryDoctorId: doctorId,
+        })
+        finalPatientId = created.id
+        patientName = created.name
+      }
 
-    const doctor = doctors.find((d) => d.id === doctorId)
-    sendMessage(
-      finalPatientId,
-      `Thank you, ${patientName.split(' ')[0]}! Your appointment on ${date} at ${time} with ${doctor?.name} is confirmed. We look forward to seeing you.`,
-    )
+      const appt = await addAppointment({
+        patientId: finalPatientId,
+        doctorId,
+        date,
+        startTime: time,
+        durationMin: duration,
+        status: 'confirmed',
+        reason,
+        isFollowUp,
+      })
 
-    toast.success('Appointment booked', {
-      description: `${patientName} · ${date} at ${time} — confirmation sent via WhatsApp.`,
-    })
+      const doctor = doctors.find((d) => d.id === doctorId)
+      sendMessage(
+        finalPatientId,
+        `Thank you, ${patientName.split(' ')[0]}! Your appointment on ${date} at ${time} with ${doctor?.name} is confirmed. We look forward to seeing you.`,
+      )
 
-    onOpenChange(false)
-    reset()
-    navigate(`/appointments?focus=${appt.id}`)
+      toast.success('Appointment booked', {
+        description: `${patientName} · ${date} at ${time} — confirmation sent via WhatsApp.`,
+      })
+
+      onOpenChange(false)
+      reset()
+      navigate(`/appointments?focus=${appt.id}`)
+    } catch {
+      toast.error('Could not book the appointment', { description: 'Please try again.' })
+    }
   }
 
   return (
